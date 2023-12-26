@@ -1,0 +1,3 @@
+[submodule "Assets/Scripts/TobisUtils"]
+	path = Assets/Scripts/TobisUtils
+	url = git@github.com:tobiasweede/TobisUtils
