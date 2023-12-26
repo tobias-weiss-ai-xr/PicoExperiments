@@ -12,6 +12,15 @@
       },
       "hash": "76f76584a113b240a4ec11f324b17302bde9a53a"
     },
+    "com.huggingface.api": {
+      "version": "file:../huggingface-unity-api",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {
+        "com.unity.textmeshpro": "3.0.6",
+        "com.unity.nuget.newtonsoft-json": "3.0.1"
+      }
+    },
     "com.normalvr.normcore": {
       "version": "2.6.4",
       "depth": 0,
@@ -122,6 +131,13 @@
     "com.unity.mobile.android-logcat": {
       "version": "1.4.0",
       "depth": 0,
+      "source": "registry",
+      "dependencies": {},
+      "url": "https://packages.unity.com"
+    },
+    "com.unity.nuget.newtonsoft-json": {
+      "version": "3.2.1",
+      "depth": 1,
       "source": "registry",
       "dependencies": {},
       "url": "https://packages.unity.com"

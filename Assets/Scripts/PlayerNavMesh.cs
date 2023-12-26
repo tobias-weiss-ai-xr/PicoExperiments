@@ -7,6 +7,8 @@ public class PlayerNavMesh : MonoBehaviour
 {
     [SerializeField]
     private Transform movePositionTransform;
+    [SerializeField]
+    private float motionSpeed = 0.9f;
     private NavMeshAgent navMeshAgent;
     private Animator animator;
 
@@ -14,6 +16,7 @@ public class PlayerNavMesh : MonoBehaviour
     {
         navMeshAgent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
+        animator.SetFloat("MotionSpeed", motionSpeed);
     }
 
     void Update()
