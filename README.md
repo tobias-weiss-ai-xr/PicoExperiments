@@ -39,9 +39,11 @@ Lipsync Only: Enable lipsync only. Uses all 20 visemes.
 
 - Part 1: https://www.youtube.com/watch?v=MYOjQICbd8I
 - Part 2: https://www.youtube.com/watch?v=1Xr3jB8ik1g
-# Readyplayerme hints
 
-- https://docs.readyplayer.me/ready-player-me/api-reference/rest-api/avatars/get-3d-avatars
-- Fail1 - no morph targets: https://models.readyplayer.me/649716ff38ad7f783a122407.glb?quality=high?morphTargets=ARKit,Oculus%20Visemes
-- Fail2 - wrong morph targets: https://models.readyplayer.me/649716ff38ad7f783a122407.glb?quality=low&textureAtlas=none&morphTargets=ARKit,Oculus%20Visemes
-- https://models.readyplayer.me/649716ff38ad7f783a122407.glb?quality=low&textureAtlas=none&morphTargets=ARKit,Oculus%20Visemes,mouthSmile
+# Readyplayerme hints
+- Right morph targets and quality: https://models.readyplayer.me/649716ff38ad7f783a122407.glb?quality=low&textureAtlas=none&morphTargets=ARKit,Oculus%20Visemes,mouthSmile
+- Comparison with VR upper-half avatars as possible extension: https://vr.readyplayer.me/
+
+Failed API-Calls:
+- No morph targets: https://models.readyplayer.me/649716ff38ad7f783a122407.glb?quality=high?morphTargets=ARKit,Oculus%20Visemes
+- Wrong morph targets: https://models.readyplayer.me/649716ff38ad7f783a122407.glb?quality=low&textureAtlas=none&morphTargets=ARKit,Oculus%20Visemes
