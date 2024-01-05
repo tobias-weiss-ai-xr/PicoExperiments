@@ -38,33 +38,8 @@ public class EyeTracking : MonoBehaviour
             PXR_EyeTracking.GetCombineEyeGazePoint(out Vector3 origin);
             PXR_EyeTracking.GetCombineEyeGazeVector(out Vector3 direction);
 
-            // Find Adjustment Index            // eyeTracking.OnEyeTrackingData += ReceiveEyeTrackingSample;n;
-            var forwardPt = origin + Vector3.forward;
-            var gazeDistance = (gazeVec - forwardPt).magnitude;
-            if (gazeDistance > 0.25f)
-            {
-                if (gazeVec.x > 0 && gazeVec.y > 0) // top right
-                    positionIndex = 1;
-                else if (gazeVec.x < 0 && gazeVec.y > 0) // top left
-                    positionIndex = 2;
-                else if (gazeVec.x > 0 & gazeVec.y < 0) // bottom right
-                    positionIndex = 3;
-                else if (gazeVec.x < 0 & gazeVec.y < 0) // bottom left
-                    positionIndex = 4;
-            }
-
-            var directionAdjusted = direction;
-            if (Main.Instance.EyeTrackingDirectionAdjustments.Count > 0)
-            {
-                directionAdjusted += Main.Instance.EyeTrackingDirectionAdjustments[positionIndex];
-            }
-
-            var originOffset = matrix.MultiplyPoint(origin);
-            var directionOffset = matrix.MultiplyVector(directionAdjusted);
-
-
             RaycastHit hit;
-            Ray ray = new Ray(originOffset, directionOffset);
+            Ray ray = new Ray(origin, direction);
 
             // Everything except layer 2 (Raycast Ignore)
             int layer = 2;
@@ -89,7 +64,7 @@ public class EyeTracking : MonoBehaviour
                 gazePoint.gameObject.SetActive(false);
             }
             // Invoke logging event
-            OnEyeTrackingEvent?.Invoke(originOffset, directionOffset, hit);
+            OnEyeTrackingEvent?.Invoke(origin, direction, hit);
 #endif
             yield return new WaitForSeconds(steptime);
         }
