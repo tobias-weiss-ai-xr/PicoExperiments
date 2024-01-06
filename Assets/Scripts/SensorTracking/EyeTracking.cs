@@ -21,7 +21,7 @@ public class EyeTracking : MonoBehaviour
     {
         gazePoint = GameObject.Find("gazePoint").transform;
         xrOrigin = GameObject.Find("XR Origin").transform;
-        StartCoroutine(EyeRaycast(0.01f)); // default: 0.04 sec. = 24 FPS
+        StartCoroutine(EyeRaycast(0.04f)); // default: 0.04 sec. = 24 FPS
     }
 
     IEnumerator EyeRaycast(float steptime)

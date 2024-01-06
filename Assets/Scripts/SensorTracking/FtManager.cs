@@ -1,4 +1,3 @@
-
 using System.Collections.Generic;
 using Unity.XR.PXR;
 using UnityEngine;
@@ -9,6 +8,7 @@ using UnityEngine.Networking;
 
 public unsafe class FtManager : MonoBehaviour
 {
+    public bool debug = true;
     public string url = "http://localhost:8001/save_to_csv";
     public SkinnedMeshRenderer leftEyeExample;
     public SkinnedMeshRenderer rightEyeExample;
@@ -97,7 +97,7 @@ public unsafe class FtManager : MonoBehaviour
     };
 
     private int[] indexList = new int[72];
-    private float[] blendshapeWeights = new float[72];
+    private float[] blendShapeWeights = new float[72];
     private int tongueIndex;
     private int leftLookDownIndex;
     private int leftLookUpIndex;
@@ -135,12 +135,12 @@ public unsafe class FtManager : MonoBehaviour
         fileWriter = GetComponent<FileWriter>();
         fileWriter.columnNames = Enumerable.Range(0, 72).Select(x => x.ToString()).ToList();
         fileWriter.StartLogging();
-
     }
 
     // Update is called once per frame
     void Update()
     {
+#if !UNITY_EDITOR
         if (PXR_Plugin.System.UPxr_QueryDeviceAbilities(PxrDeviceAbilities.PxrTrackingModeFaceBit))
         {
             switch (PXR_Manager.Instance.trackingMode)
@@ -159,49 +159,46 @@ public unsafe class FtManager : MonoBehaviour
             {
                 for (int i = 0; i < 72; ++i)
                 {
-                    blendshapeWeights[i] = ptr[i];
-                    texts[i].text = $"{blendShapeList[i]}\n{(int)(blendshapeWeights[i] * 120)}";
+                    texts[i].text = $"{blendShapeList[i]}\n{(int)(ptr[i] * 120)}";
 
                     if (indexList[i] >= 0)
                     {
-                        head.SetBlendShapeWeight(indexList[i], 100 * blendshapeWeights[i]);
+                        head.SetBlendShapeWeight(indexList[i], ptr[i]);
                     }
                 }
 
-                teethBlendShape.SetBlendShapeWeight(tongueIndex, 100 * blendshapeWeights[51]);
+                teethBlendShape.SetBlendShapeWeight(tongueIndex, blendshapeWeights[51]);
 
-                leftEyeExample.SetBlendShapeWeight(leftLookUpIndex, 100 * blendshapeWeights[31]);
-                leftEyeExample.SetBlendShapeWeight(leftLookDownIndex, 100 * blendshapeWeights[0]);
-                leftEyeExample.SetBlendShapeWeight(leftLookInIndex, 100 * blendshapeWeights[2]);
-                leftEyeExample.SetBlendShapeWeight(leftLookOutIndex, 100 * blendshapeWeights[44]);
-                rightEyeExample.SetBlendShapeWeight(rightLookUpIndex, 100 * blendshapeWeights[35]);
-                rightEyeExample.SetBlendShapeWeight(rightLookDownIndex, 100 * blendshapeWeights[12]);
-                rightEyeExample.SetBlendShapeWeight(rightLookInIndex, 100 * blendshapeWeights[11]);
-                rightEyeExample.SetBlendShapeWeight(rightLookOutIndex, 100 * blendshapeWeights[45]);
+                leftEyeExample.SetBlendShapeWeight(leftLookUpIndex, blendshapeWeights[31]);
+                leftEyeExample.SetBlendShapeWeight(leftLookDownIndex, blendshapeWeights[0]);
+                leftEyeExample.SetBlendShapeWeight(leftLookInIndex, blendshapeWeights[2]);
+                leftEyeExample.SetBlendShapeWeight(leftLookOutIndex, blendshapeWeights[44]);
+                rightEyeExample.SetBlendShapeWeight(rightLookUpIndex, blendshapeWeights[35]);
+                rightEyeExample.SetBlendShapeWeight(rightLookDownIndex, blendshapeWeights[12]);
+                rightEyeExample.SetBlendShapeWeight(rightLookInIndex, blendshapeWeights[11]);
+                rightEyeExample.SetBlendShapeWeight(rightLookOutIndex, blendshapeWeights[45]);
             }
-
-
         }
-
-
+#endif
     }
     public void SendValues(string state)
     {
-        FtPayload p = new FtPayload(state, blendshapeWeights);
+        FtPayload p = new FtPayload(state, blendShapeWeights);
         StartCoroutine(ViaHttp(p));
-        fileWriter.WriteLog(blendshapeWeights);
+        fileWriter.WriteLog(blendShapeWeights);
+        if (debug) Debug.Log("sent values: " + state + " " + string.Join(" ", blendShapeWeights));
     }
 
     IEnumerator ViaHttp(FtPayload p)
     {
         if (p.State == null)
         {
-            Debug.Log("State missing");
+            if (debug) Debug.Log("State missing");
             yield return 0;
         }
         if (p.Weights == null)
         {
-            Debug.Log("Weights missing");
+            if (debug) Debug.Log("Weights missing");
             yield return 0;
         }
 
@@ -220,15 +217,15 @@ public unsafe class FtManager : MonoBehaviour
             }
             else
             {
-                Debug.Log("Form upload complete!");
-                Debug.Log(www.downloadHandler.text);
+                if (debug) Debug.Log("Form upload complete!");
+                if (debug) Debug.Log(www.downloadHandler.text);
             }
         }
     }
     public void ToggleDebugUI()
     {
         TextParent.gameObject.SetActive(!TextParent.gameObject.activeSelf);
-        Debug.Log("Toggle debug view");
+        if (debug) Debug.Log("Toggle debug view");
     }
 }
 

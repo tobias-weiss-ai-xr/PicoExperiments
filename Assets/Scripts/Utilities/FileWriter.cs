@@ -42,10 +42,17 @@ public class FileWriter : MonoBehaviour
         if (!Directory.Exists(logPath)) Directory.CreateDirectory(logPath);
         path = logPath + fileName + ".csv";
         logging = true;
-        writer = new StreamWriter(path);
 
-        Debug.Log(string.Join(" ", columnNames));
+        writer = new StreamWriter(path);
         Debug.Log("Log file started at: " + path);
+
+        string line = "";
+        for (int i = 0; i < columnNames.Count; ++i)
+        {
+            line += columnNames[i] + (i == (columnNames.Count - 1) ? "" : ";"); // Do not add semicolon to last data string
+        }
+        writer.WriteLine(line);
+        Debug.Log("Columns: " + string.Join(" ", columnNames));
     }
 
     private void StopLogging()
@@ -75,6 +82,7 @@ public class FileWriter : MonoBehaviour
             line += values[i] + (i == (values.Length - 1) ? "" : ";"); // Do not add semicolon to last data string
         }
         writer.WriteLine(line);
+        Debug.Log("written: " + line);
 
         flushCounter += 1;
         if (flushCounter > 64)
@@ -97,6 +105,7 @@ public class FileWriter : MonoBehaviour
             line += arr[i] + (i == (arr.Length - 1) ? "" : ";"); // Do not add semicolon to last data string
         }
         writer.WriteLine(line);
+        Debug.Log("logged: " + line);
 
         flushCounter += 1;
         if (flushCounter > 64)
