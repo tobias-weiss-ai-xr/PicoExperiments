@@ -33,18 +33,29 @@ public class ReadyPlayerMeRigCreatorEditor : Editor
             return;
         }
         ReadyPlayerMeRigCreator creator = (ReadyPlayerMeRigCreator)target;
-        #region Arms
+        PaintHead(creator);
+        PaintArms(creator);
+        PaintLegs(creator);       
+        if (GUILayout.Button("AttachToXR"))
+        {
+            creator.AttachToPico();
+        }
+    }
+
+    public void PaintArms(ReadyPlayerMeRigCreator creator)
+    {
         List<MissingBodyRigObjects> missingRigs = creator.CheckForValidArmRig();
         EditorGUILayout.LabelField(creator.FindArmParts());
         if (missingRigs.Count() == 0)
         {
             EditorGUILayout.LabelField("All arm components are in place.");
-        } else
+        }
+        else
         {
-            foreach(MissingBodyRigObjects mbrc in missingRigs)
+            foreach (MissingBodyRigObjects mbrc in missingRigs)
             {
                 errorMessagesObjects.TryGetValue(mbrc, out string errormsg);
-                EditorGUILayout.LabelField(errormsg);               
+                EditorGUILayout.LabelField(errormsg);
             }
             if (GUILayout.Button("Create Missing Arm Components"))
             {
@@ -73,11 +84,11 @@ public class ReadyPlayerMeRigCreatorEditor : Editor
         {
             creator.AlignArmObjects();
         }
-        #endregion
-
-        #region Legs
+    }
+    public void PaintLegs(ReadyPlayerMeRigCreator creator)
+    {
         EditorGUILayout.LabelField(creator.FindLegParts());
-        missingRigs = creator.CheckForValidLegRig();
+        List<MissingBodyRigObjects> missingRigs = creator.CheckForValidLegRig();
         if (missingRigs.Count() == 0)
         {
             EditorGUILayout.LabelField("All leg components are in place.");
@@ -95,7 +106,7 @@ public class ReadyPlayerMeRigCreatorEditor : Editor
             }
             return;
         }
-        missingRefs = creator.CheckForValidLegReferences();
+        List<MissingBodyRigReferences>  missingRefs = creator.CheckForValidLegReferences();
         if (missingRefs.Count() == 0)
         {
             EditorGUILayout.LabelField("All leg references seem to be in place.");
@@ -116,12 +127,34 @@ public class ReadyPlayerMeRigCreatorEditor : Editor
         {
             creator.AlignLegObjects();
         }
-        #endregion
-
-
     }
 
-
+    public void PaintHead(ReadyPlayerMeRigCreator creator)
+    {
+        EditorGUILayout.LabelField(creator.FindHead());
+        List<MissingBodyRigObjects> missingRigs = creator.CheckForValidHeadRig();
+        if (missingRigs.Count() == 0)
+        {
+            EditorGUILayout.LabelField("All head components are in place.");
+        }
+        else
+        {
+            foreach (MissingBodyRigObjects mbrc in missingRigs)
+            {
+                errorMessagesObjects.TryGetValue(mbrc, out string errormsg);
+                EditorGUILayout.LabelField(errormsg);
+            }
+            if (GUILayout.Button("Create Missing head Components"))
+            {
+                creator.CreateMissingHeadGameobjectsAndComponents(missingRigs);
+            }
+            return;
+        }        
+        if (GUILayout.Button("Align Head Objects"))
+        {
+            creator.AlignHeadObjects();
+        }
+    }
 
 
 
