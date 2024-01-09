@@ -4,6 +4,8 @@ using System.Linq;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.Animations.Rigging;
+using UnityEngine.InputSystem.XR;
+using UnityEngine.XR.Interaction.Toolkit;
 
 public class ReadyPlayerMeRigCreator : MonoBehaviour
 {
@@ -14,12 +16,14 @@ public class ReadyPlayerMeRigCreator : MonoBehaviour
     public Rig upperBodyRig;
     public TwoBoneIKConstraint leftArmConstraint;
     public TwoBoneIKConstraint rightArmConstraint;
+    public MultiParentConstraint headConstraint;
     public Transform leftArm;
     public Transform leftHand;
     public Transform leftForeArm;
     public Transform rightArm;
     public Transform rightHand;
     public Transform rightForeArm;
+    public Transform headTransform;
     #endregion
 
     #region LowerRig
@@ -181,6 +185,7 @@ public class ReadyPlayerMeRigCreator : MonoBehaviour
     }
     public void AlignArmObjects()
     {
+        upperBodyRig.transform.localPosition = Vector3.zero;
         leftArmConstraint.data.target.transform.position = leftHand.position;
         rightArmConstraint.data.target.transform.position = rightHand.position;
         Vector3 lhintPosition = leftForeArm.position + (leftArm.position - leftForeArm.position) * 0.2f;
@@ -288,7 +293,6 @@ public class ReadyPlayerMeRigCreator : MonoBehaviour
                     rightLegHolder.transform.SetParent(lowerBodyRig.transform);
                     rightLegHolder.AddComponent<TwoBoneIKConstraint>();
                     IK_Feet rightFoot = rightLegHolder.AddComponent<IK_Feet>();
-                    rightFoot.groundLayer = LayerMask.GetMask(new string[] { "Ground Layer" });
                     GameObject rightLegHint = new GameObject("Rig_Knee_R_Hint");
                     rightLegHint.transform.SetParent(lowerBodyRig.transform);
                     if(leftLegConstraint != null)
@@ -303,10 +307,8 @@ public class ReadyPlayerMeRigCreator : MonoBehaviour
                     leftLegHolder.transform.SetParent(upperBodyRig.transform);
                     leftLegHolder.AddComponent<TwoBoneIKConstraint>();
                     IK_Feet leftFoot = leftLegHolder.AddComponent<IK_Feet>();
-                    leftFoot.groundLayer = LayerMask.GetMask(new string[] { "Ground Layer" });
                     GameObject leftLegHint = new GameObject("Rig_Knee_L_Hint");
-                    leftLegHint.transform.SetParent(lowerBodyRig.transform);
-                    
+                    leftLegHint.transform.SetParent(lowerBodyRig.transform);                   
                     break;
             }
         }
@@ -357,7 +359,95 @@ public class ReadyPlayerMeRigCreator : MonoBehaviour
 
     public void AlignLegObjects()
     {
-        Debug.LogError("NOT YET IMPLEMENTED");
+        lowerBodyRig.transform.localPosition = Vector3.zero;
+        leftLegConstraint.data.target.transform.position = leftFoot.position;
+        rightLegConstraint.data.target.transform.position = rightFoot.position;
+        Vector3 lhintPosition = leftLeg.position + leftLeg.forward;
+        leftLegConstraint.data.hint.transform.position = lhintPosition;
+        Vector3 rhintPosition = leftLeg.position + rightLeg.forward;
+        rightLegConstraint.data.hint.transform.position = rhintPosition;
+        rightLegConstraint.GetComponent<IK_Feet>().footRotOffset = new Vector3(-30,0,0); //Magic number that works well for ReadyPlayerMe Avatars
+        leftLegConstraint.GetComponent<IK_Feet>().footRotOffset = new Vector3(-30, 0, 0); //Magic number that works well for ReadyPlayerMe Avatars
+    }
+    #endregion
+
+    #region HeadAndChest
+    public string FindHead()
+    {
+        string result = "";
+        result += FindBodyPart(ref headTransform, "Head");
+        if (result == "")
+        {
+            result = "Head in armature found.";
+        }
+        return result;
+    }
+    public List<MissingBodyRigObjects> CheckForValidHeadRig()
+    {
+        if (!rigBuilder)
+        {
+            rigBuilder = GetComponent<RigBuilder>();
+            if (!rigBuilder)
+            {
+                return new List<MissingBodyRigObjects>() { MissingBodyRigObjects.CORERIG };
+            }
+        }
+        if (!upperBodyRig)
+        {
+            upperBodyRig = GetComponentInChildren<Rig>();
+            if (!upperBodyRig)
+            {
+                return new List<MissingBodyRigObjects>() { MissingBodyRigObjects.BODYRIG };
+            }
+        }
+        if (!headConstraint)
+        {
+            MultiParentConstraint[] multiParentConstraints = upperBodyRig.GetComponentsInChildren<MultiParentConstraint>();
+            IEnumerable<MultiParentConstraint> headConstraints = multiParentConstraints.Where(x => x.gameObject.name.Contains("Head"));
+            if (multiParentConstraints.Count() == 0)
+            {
+                return new List<MissingBodyRigObjects>() { MissingBodyRigObjects.HEAD };
+            }
+            else
+            {
+                headConstraint = headConstraints.First();
+            }
+        }
+        return new List<MissingBodyRigObjects>();
+    }
+
+
+    public void CreateMissingHeadGameobjectsAndComponents(IEnumerable<MissingBodyRigObjects> missingRigs)
+    {
+        foreach (MissingBodyRigObjects mbro in missingRigs)
+        {
+            switch (mbro)
+            {
+                case MissingBodyRigObjects.CORERIG: gameObject.AddComponent<RigBuilder>(); break;
+                case MissingBodyRigObjects.BODYRIG:
+                    GameObject rigHolder = new GameObject("BodyRig");
+                    rigHolder.transform.SetParent(transform);
+                    rigHolder.AddComponent<Rig>();
+                    upperBodyRig = rigHolder.GetComponent<Rig>();
+                    break;
+                case MissingBodyRigObjects.HEAD:
+                    GameObject headHolder = new GameObject("Rig_Head");
+                    GameObject headTarget = new GameObject("Rig_Head_Target");
+                    headTarget.transform.SetParent(headHolder.transform);                   
+                    headHolder.transform.SetParent(upperBodyRig.transform);
+                    headHolder.AddComponent<MultiParentConstraint>();
+                    headConstraint = headHolder.GetComponent<MultiParentConstraint>();
+                    headConstraint.data.constrainedObject = headTransform;
+                    WeightedTransformArray sources = new WeightedTransformArray(1);
+                    sources[0] = new WeightedTransform(headTarget.transform, 1);
+                    headConstraint.data.sourceObjects = sources;
+                    break;              
+            }
+        }
+    }
+    public void AlignHeadObjects()
+    {
+        headConstraint.gameObject.transform.position = headTransform.position;
     }
 
     #endregion
@@ -384,6 +474,37 @@ public class ReadyPlayerMeRigCreator : MonoBehaviour
     {
         return data.root != null && data.mid != null && data.target != null && data.hint != null && data.tip != null;
     }
+
+    public void AttachToPico()
+    {
+        FollowObject rightHand = rightArmConstraint.gameObject.GetComponent<FollowObject>();
+        if (rightHand == null)
+        {
+            rightHand = rightArmConstraint.gameObject.AddComponent<FollowObject>();
+        }
+        rightHand.transformToFollow = FindObjectsByType<ActionBasedController>(FindObjectsSortMode.None).Where(x => x.gameObject.name.Contains("Right")).First().transform;
+
+        FollowObject leftHand = leftArmConstraint.gameObject.GetComponent<FollowObject>();
+        if (leftHand == null)
+        {
+            leftHand = leftArmConstraint.gameObject.AddComponent<FollowObject>();
+        }
+        leftHand.transformToFollow = FindObjectsByType<ActionBasedController>(FindObjectsSortMode.None).Where(x => x.gameObject.name.Contains("Left")).First().transform;
+        FollowObject headFollow = headConstraint.data.sourceObjects[0].transform.GetComponent<FollowObject>();
+        if (headFollow == null)
+        {
+            headFollow = headConstraint.data.sourceObjects[0].transform.gameObject.AddComponent<FollowObject>();
+        }
+        headFollow.transformToFollow = Camera.main.transform;
+        FollowObject bodyFollow = this.GetComponent<FollowObject>();
+        if (bodyFollow == null)
+        {
+            bodyFollow = this.gameObject.AddComponent<FollowObject>();
+        }
+        bodyFollow.transformToFollow = Camera.main.transform;
+        bodyFollow.positionOffset = headTransform.position - this.transform.position;
+
+    }
     #endregion
 
 }
@@ -395,6 +516,6 @@ public enum MissingBodyRigReferences
 
 public enum MissingBodyRigObjects
 {
-    CORERIG, BODYRIG, LEFTARM, RIGHTARM, RIGHTLEG, LEFTLEG
+    CORERIG, BODYRIG, LEFTARM, RIGHTARM, RIGHTLEG, LEFTLEG, HEAD
 }
 
