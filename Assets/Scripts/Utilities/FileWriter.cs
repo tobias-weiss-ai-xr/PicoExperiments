@@ -114,4 +114,27 @@ public class FileWriter : MonoBehaviour
             flushCounter = 0;
         }
     }
+
+    public void WriteLog(FtPayload p)
+    {
+        if (!logging || writer == null)
+            return;
+
+        string line = p.Timestamp.ToString() + ";" + p.State + ";";
+        var arr = p.Weights.Select(x => x.ToString()).ToArray();
+        for (int i = 0; i < arr.Length; ++i)
+        {
+            arr[i] = arr[i].Replace("\r", "").Replace("\n", ""); // Remove new lines so they don't break csv
+            line += arr[i] + (i == (arr.Length - 1) ? "" : ";"); // Do not add semicolon to last data string
+        }
+        writer.WriteLine(line);
+        Debug.Log("written: " + line);
+
+        flushCounter += 1;
+        if (flushCounter > 64)
+        {
+            writer.FlushAsync();
+            flushCounter = 0;
+        }
+    }
 }

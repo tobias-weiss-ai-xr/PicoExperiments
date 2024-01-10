@@ -8,7 +8,8 @@ using UnityEngine.Networking;
 
 public unsafe class FtManager : MonoBehaviour
 {
-    public bool debug = true;
+    public bool DebugLogging = true;
+    public bool ComposedAvatar = true;
     public string url = "http://localhost:8001/save_to_csv";
     public SkinnedMeshRenderer leftEyeExample;
     public SkinnedMeshRenderer rightEyeExample;
@@ -159,6 +160,7 @@ public unsafe class FtManager : MonoBehaviour
             {
                 for (int i = 0; i < 72; ++i)
                 {
+                    blendShapeWeights[i] = ptr[i];
                     texts[i].text = $"{blendShapeList[i]}\n{(int)(ptr[i] * 120)}";
 
                     if (indexList[i] >= 0)
@@ -167,38 +169,40 @@ public unsafe class FtManager : MonoBehaviour
                     }
                 }
 
-                teethBlendShape.SetBlendShapeWeight(tongueIndex, blendshapeWeights[51]);
-
-                leftEyeExample.SetBlendShapeWeight(leftLookUpIndex, blendshapeWeights[31]);
-                leftEyeExample.SetBlendShapeWeight(leftLookDownIndex, blendshapeWeights[0]);
-                leftEyeExample.SetBlendShapeWeight(leftLookInIndex, blendshapeWeights[2]);
-                leftEyeExample.SetBlendShapeWeight(leftLookOutIndex, blendshapeWeights[44]);
-                rightEyeExample.SetBlendShapeWeight(rightLookUpIndex, blendshapeWeights[35]);
-                rightEyeExample.SetBlendShapeWeight(rightLookDownIndex, blendshapeWeights[12]);
-                rightEyeExample.SetBlendShapeWeight(rightLookInIndex, blendshapeWeights[11]);
-                rightEyeExample.SetBlendShapeWeight(rightLookOutIndex, blendshapeWeights[45]);
+                if (ComposedAvatar)
+                {
+                    teethBlendShape.SetBlendShapeWeight(tongueIndex, blendShapeWeights[51]);
+                    leftEyeExample.SetBlendShapeWeight(leftLookUpIndex, blendShapeWeights[31]);
+                    leftEyeExample.SetBlendShapeWeight(leftLookDownIndex, blendShapeWeights[0]);
+                    leftEyeExample.SetBlendShapeWeight(leftLookInIndex, blendShapeWeights[2]);
+                    leftEyeExample.SetBlendShapeWeight(leftLookOutIndex, blendShapeWeights[44]);
+                    rightEyeExample.SetBlendShapeWeight(rightLookUpIndex, blendShapeWeights[35]);
+                    rightEyeExample.SetBlendShapeWeight(rightLookDownIndex, blendShapeWeights[12]);
+                    rightEyeExample.SetBlendShapeWeight(rightLookInIndex, blendShapeWeights[11]);
+                    rightEyeExample.SetBlendShapeWeight(rightLookOutIndex, blendShapeWeights[45]);
+                }
             }
         }
 #endif
     }
     public void SendValues(string state)
     {
-        FtPayload p = new FtPayload(state, blendShapeWeights);
+        FtPayload p = new(state, blendShapeWeights);
         StartCoroutine(ViaHttp(p));
         fileWriter.WriteLog(blendShapeWeights);
-        if (debug) Debug.Log("sent values: " + state + " " + string.Join(" ", blendShapeWeights));
+        if (DebugLogging) Debug.Log("sent values: " + state + " " + string.Join(" ", blendShapeWeights));
     }
 
     IEnumerator ViaHttp(FtPayload p)
     {
         if (p.State == null)
         {
-            if (debug) Debug.Log("State missing");
+            if (DebugLogging) Debug.Log("State missing");
             yield return 0;
         }
         if (p.Weights == null)
         {
-            if (debug) Debug.Log("Weights missing");
+            if (DebugLogging) Debug.Log("Weights missing");
             yield return 0;
         }
 
@@ -217,15 +221,15 @@ public unsafe class FtManager : MonoBehaviour
             }
             else
             {
-                if (debug) Debug.Log("Form upload complete!");
-                if (debug) Debug.Log(www.downloadHandler.text);
+                if (DebugLogging) Debug.Log("Form upload complete!");
+                if (DebugLogging) Debug.Log(www.downloadHandler.text);
             }
         }
     }
     public void ToggleDebugUI()
     {
         TextParent.gameObject.SetActive(!TextParent.gameObject.activeSelf);
-        if (debug) Debug.Log("Toggle debug view");
+        if (DebugLogging) Debug.Log("Toggle debug view");
     }
 }
 
