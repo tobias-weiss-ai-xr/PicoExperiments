@@ -1,5 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
+using Convai.Scripts;
+using Convai.Scripts.Utils;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -11,13 +13,11 @@ public class NavMeshAgentTarget : MonoBehaviour
     private float motionSpeed = 0.9f;
     private NavMeshAgent navMeshAgent;
     private Animator animator;
-    private Transform target;
-    private Transform targetWelcome;
+    private GameObject doors;
 
     void Awake()
     {
-        target = GameObject.Find("MoveTarget").transform;
-        targetWelcome = GameObject.Find("MoveTargetWelcome").transform;
+        doors = GameObject.Find("doors 1 agent");
         navMeshAgent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
         animator.SetFloat("MotionSpeed", motionSpeed);
@@ -25,8 +25,17 @@ public class NavMeshAgentTarget : MonoBehaviour
     }
     private IEnumerator MoveToConsumer()
     {
-        yield return new WaitForSeconds(10f);
-        target.position = targetWelcome.position;
+        yield return new WaitForSeconds(5f);
+        movePositionTransform = GameObject.Find("XR Origin").transform;
+        doors.SetActive(false); // Todo: Use a nice animation...
+        StartCoroutine(WelcomeCustomer());
+    }
+
+    private IEnumerator WelcomeCustomer()
+    {
+        yield return new WaitForSeconds(5f);
+        var chat = GameObject.Find("Convai Transcript UI").GetComponent<ConvaiChatUIHandler>();
+        chat.SendCharacterText("Sales agent", "Hallo, kann ich ihnen helfen?");
     }
 
     void Update()

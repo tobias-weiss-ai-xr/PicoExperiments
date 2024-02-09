@@ -8,6 +8,7 @@ public class Main : DSingleton<Main>
 {
     private Dictionary<int, string> avatar_id_dic = new Dictionary<int, string>();
     private bool menuIsDone;
+    private bool triggerPressed;
     public static bool XrKeydownIndexBool = true;
 
     public List<Vector3> EyeTrackingDirectionAdjustments;
@@ -42,6 +43,13 @@ public class Main : DSingleton<Main>
                     ChangeScene(0);
             }
         }
+
+        // //Agent Interaction
+        // if (((InputDevices.GetDeviceAtXRNode(XRNode.LeftHand).TryGetFeatureValue(CommonUsages.triggerButton, out triggerPressed) && triggerPressed) || (InputDevices.GetDeviceAtXRNode(XRNode.RightHand).TryGetFeatureValue(CommonUsages.triggerButton, out triggerPressed) && triggerPressed)) && SceneManager.GetSceneByBuildIndex(0) != SceneManager.GetActiveScene())
+        // {
+        //     // do something
+        //     Debug.Log("Trigger pressed");
+        // }
 
     }
     public static void ChangeScene(string sceneName)
