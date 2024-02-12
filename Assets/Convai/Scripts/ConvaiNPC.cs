@@ -177,6 +177,7 @@ namespace Convai.Scripts
 
         private void Update()
         {
+            ConvaiChatUIHandler h = GetComponent<ConvaiChatUIHandler>();
             // Handle text input focus and submission
             if (isCharacterActive)
             {
@@ -190,6 +191,7 @@ namespace Convai.Scripts
         private void WelcomeConsumer()
         {
             welcomeConsumerFlag = true;
+            Debug.Log("WelcomeConsumer");
             var chat = GameObject.Find("Convai Transcript UI").GetComponent<ConvaiChatUIHandler>();
             chat.SendCharacterText("Sales agent", "Hallo, kann ich ihnen helfen?");
         }
