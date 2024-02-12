@@ -28,16 +28,7 @@ public class NavMeshAgentTarget : MonoBehaviour
         yield return new WaitForSeconds(5f);
         movePositionTransform = GameObject.Find("XR Origin").transform;
         doors.SetActive(false); // Todo: Use a nice animation...
-        StartCoroutine(WelcomeCustomer());
     }
-
-    private IEnumerator WelcomeCustomer()
-    {
-        yield return new WaitForSeconds(5f);
-        var chat = GameObject.Find("Convai Transcript UI").GetComponent<ConvaiChatUIHandler>();
-        chat.SendCharacterText("Sales agent", "Hallo, kann ich ihnen helfen?");
-    }
-
     void Update()
     {
         navMeshAgent.destination = movePositionTransform.position;

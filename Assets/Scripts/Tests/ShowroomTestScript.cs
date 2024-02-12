@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
+using UnityEngine.UIElements;
 
 public class ShowroomTestScript
 {
@@ -13,6 +14,12 @@ public class ShowroomTestScript
         Assert.IsTrue(GameObject.Find("Realtime Instance").transform != null);
         Assert.IsTrue(GameObject.Find("doors 1 agent").transform != null);
         // Assert.IsTrue(GameObject.Find("FTManager").GetComponent<FileWriter>() != null);
+    }
+
+    [Test]
+    public void XrOriginBoxColliderTest()
+    {
+        Assert.IsTrue(GameObject.Find("XR Origin").GetComponent<BoxCollider>() != null);
     }
 
     // A UnityTest behaves like a coroutine in Play Mode. In Edit Mode you can use

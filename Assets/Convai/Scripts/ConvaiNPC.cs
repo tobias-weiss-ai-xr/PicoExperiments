@@ -23,6 +23,7 @@ namespace Convai.Scripts
         "https://docs.convai.com/api-docs/plugins-and-integrations/unity-plugin/overview-of-the-convainpc.cs-script")]
     public class ConvaiNPC : MonoBehaviour
     {
+        private bool welcomeConsumerFlag = false; // Flag to start greeting once
         private const int AUDIO_SAMPLE_RATE = 44100;
         private const string GRPC_API_ENDPOINT = "stream.convai.com";
         private const int RECORDING_FREQUENCY = AUDIO_SAMPLE_RATE;
@@ -178,9 +179,19 @@ namespace Convai.Scripts
         {
             // Handle text input focus and submission
             if (isCharacterActive)
+            {
+                if (!welcomeConsumerFlag)
+                    WelcomeConsumer();
                 HandleTextInput();
-
+            }
             HandlePlayerInputs();
+        }
+
+        private void WelcomeConsumer()
+        {
+            welcomeConsumerFlag = true;
+            var chat = GameObject.Find("Convai Transcript UI").GetComponent<ConvaiChatUIHandler>();
+            chat.SendCharacterText("Sales agent", "Hallo, kann ich ihnen helfen?");
         }
 
         private void OnEnable()
