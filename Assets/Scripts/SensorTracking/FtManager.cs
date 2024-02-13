@@ -111,9 +111,9 @@ public unsafe class FtManager : MonoBehaviour
     private int rightLookInIndex;
     private int rightLookOutIndex;
 
-    private FaceTrackingDataGetInfo info = new();
 
     TrackingStateCode trackingState;
+    private PxrFaceTrackingInfo faceTrackingInfo;
     private FileWriter fileWriter;
 
     void Start()
@@ -141,19 +141,19 @@ public unsafe class FtManager : MonoBehaviour
         fileWriter.StartLogging();
         
 
-        // Want face tracking for the current app
-        trackingState = (TrackingStateCode)PXR_MotionTracking.WantFaceTrackingService();
+        // // Want face tracking for the current app
+        // trackingState = (TrackingStateCode)PXR_MotionTracking.WantFaceTrackingService();
 
-        // Query if the current device support face tracking
-        bool supported = false;
-        int supportedCount = 0;
-        FaceTrackingSupportedMode faceTrackingMode = FaceTrackingSupportedMode.PXR_FTM_FACE_LIPS_BS;
-        trackingState = (TrackingStateCode)PXR_MotionTracking.GetFaceTrackingSupported(ref supported, ref supportedCount, ref faceTrackingMode);
+        // // Query if the current device support face tracking
+        // bool supported = false;
+        // int supportedCount = 0;
+        // FaceTrackingSupportedMode faceTrackingMode = FaceTrackingSupportedMode.PXR_FTM_FACE_LIPS_BS;
+        // trackingState = (TrackingStateCode)PXR_MotionTracking.GetFaceTrackingSupported(ref supported, ref supportedCount, ref faceTrackingMode);
 
-        // Start face tracking
-        FaceTrackingStartInfo info = new FaceTrackingStartInfo();
-        info.mode = FaceTrackingSupportedMode.PXR_FTM_FACE;
-        trackingState = (TrackingStateCode)PXR_MotionTracking.StartFaceTracking(ref info);
+        // // Start face tracking
+        // FaceTrackingStartInfo info = new FaceTrackingStartInfo();
+        // info.mode = FaceTrackingSupportedMode.PXR_FTM_FACE;
+        // trackingState = (TrackingStateCode)PXR_MotionTracking.StartFaceTracking(ref info);
     }
 
     // Update is called once per frame
@@ -161,49 +161,48 @@ public unsafe class FtManager : MonoBehaviour
     {
         if (PXR_Plugin.System.UPxr_QueryDeviceAbilities(PxrDeviceAbilities.PxrTrackingModeFaceBit))
         {
-            // switch (PXR_Manager.Instance.trackingMode)
-            // {
-            //     case FaceTrackingMode.Hybrid:
-            //         PXR_System.GetFaceTrackingData(0, GetDataType.PXR_GET_FACELIP_DATA, ref faceTrackingInfo);
-            //         break;
-            //     case FaceTrackingMode.FaceOnly:
-            //         PXR_System.GetFaceTrackingData(0, GetDataType.PXR_GET_FACE_DATA, ref faceTrackingInfo);
-            //         break;
-            //     case FaceTrackingMode.LipsyncOnly:
-            //         PXR_System.GetFaceTrackingData(0, GetDataType.PXR_GET_LIP_DATA, ref faceTrackingInfo);
-            //         break;
-            // }
+            switch (PXR_Manager.Instance.trackingMode)
+            {
+                case FaceTrackingMode.Hybrid:
+                    PXR_System.GetFaceTrackingData(0, GetDataType.PXR_GET_FACELIP_DATA, ref faceTrackingInfo);
+                    break;
+                case FaceTrackingMode.FaceOnly:
+                    PXR_System.GetFaceTrackingData(0, GetDataType.PXR_GET_FACE_DATA, ref faceTrackingInfo);
+                    break;
+                case FaceTrackingMode.LipsyncOnly:
+                    PXR_System.GetFaceTrackingData(0, GetDataType.PXR_GET_LIP_DATA, ref faceTrackingInfo);
+                    break;
+            }
 
-            // Get face tracking data
-            FaceTrackingDataGetInfo info = new FaceTrackingDataGetInfo();
-            info.displayTime = 0;
-            info.flags = FaceTrackingDataGetFlags.PXR_FACE_DEFAULT;
-            FaceTrackingData faceTrackingData = new FaceTrackingData();
-            float* b = stackalloc float[72]; // The array's length must by 72, otherwise the request will return an error
-            faceTrackingData.blendShapeWeight = b;
+            // // Get face tracking data
+            // FaceTrackingDataGetInfo info = new FaceTrackingDataGetInfo();
+            // info.displayTime = 0;
+            // info.flags = FaceTrackingDataGetFlags.PXR_FACE_DEFAULT;
+            // FaceTrackingData faceTrackingData = new FaceTrackingData();
+            // float* b = stackalloc float[72]; // The array's length must by 72, otherwise the request will return an error
+            // faceTrackingData.blendShapeWeight = b;
 
-            trackingState = (TrackingStateCode)PXR_MotionTracking.GetFaceTrackingData(ref info, ref faceTrackingData);
+            // trackingState = (TrackingStateCode)PXR_MotionTracking.GetFaceTrackingData(ref info, ref faceTrackingData);
 
-            Debug.Log(trackingState);
             for (int i = 0; i < 72; ++i)
             {
-                texts[i].text = $"{blendShapeList[i]}\n{(int)(faceTrackingData.blendShapeWeight[i] * 120)}";
+                texts[i].text = $"{blendShapeList[i]}\n{(int)(faceTrackingInfo.blendShapeWeight[i] * 120)}";
 
                 if (indexList[i] >= 0)
                 {
-                    head.SetBlendShapeWeight(indexList[i], 100 * faceTrackingData.blendShapeWeight[i]);
+                    head.SetBlendShapeWeight(indexList[i], 100 * faceTrackingInfo.blendShapeWeight[i]);
                 }
 
                 // tongueBlendShape.SetBlendShapeWeight(tongueIndex, 100 * faceTrackingData.blendShapeWeight[51]);
 
-                leftEyeExample.SetBlendShapeWeight(leftLookUpIndex, 100 * faceTrackingData.blendShapeWeight[31]);
-                leftEyeExample.SetBlendShapeWeight(leftLookDownIndex, 100 * faceTrackingData.blendShapeWeight[0]);
-                leftEyeExample.SetBlendShapeWeight(leftLookInIndex, 100 * faceTrackingData.blendShapeWeight[2]);
-                leftEyeExample.SetBlendShapeWeight(leftLookOutIndex, 100 * faceTrackingData.blendShapeWeight[44]);
-                rightEyeExample.SetBlendShapeWeight(rightLookUpIndex, 100 * faceTrackingData.blendShapeWeight[35]);
-                rightEyeExample.SetBlendShapeWeight(rightLookDownIndex, 100 * faceTrackingData.blendShapeWeight[12]);
-                rightEyeExample.SetBlendShapeWeight(rightLookInIndex, 100 * faceTrackingData.blendShapeWeight[11]);
-                rightEyeExample.SetBlendShapeWeight(rightLookOutIndex, 100 * faceTrackingData.blendShapeWeight[45]);
+                leftEyeExample.SetBlendShapeWeight(leftLookUpIndex, 100 * faceTrackingInfo.blendShapeWeight[31]);
+                leftEyeExample.SetBlendShapeWeight(leftLookDownIndex, 100 * faceTrackingInfo.blendShapeWeight[0]);
+                leftEyeExample.SetBlendShapeWeight(leftLookInIndex, 100 * faceTrackingInfo.blendShapeWeight[2]);
+                leftEyeExample.SetBlendShapeWeight(leftLookOutIndex, 100 * faceTrackingInfo.blendShapeWeight[44]);
+                rightEyeExample.SetBlendShapeWeight(rightLookUpIndex, 100 * faceTrackingInfo.blendShapeWeight[35]);
+                rightEyeExample.SetBlendShapeWeight(rightLookDownIndex, 100 * faceTrackingInfo.blendShapeWeight[12]);
+                rightEyeExample.SetBlendShapeWeight(rightLookInIndex, 100 * faceTrackingInfo.blendShapeWeight[11]);
+                rightEyeExample.SetBlendShapeWeight(rightLookOutIndex, 100 * faceTrackingInfo.blendShapeWeight[45]);
             }
         }
     }

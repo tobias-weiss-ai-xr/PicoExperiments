@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Convai.Scripts;
@@ -7,6 +8,7 @@ using UnityEngine.AI;
 
 public class NavMeshAgentTarget : MonoBehaviour
 {
+    bool TimedAppearance = false;
     [SerializeField]
     private Transform movePositionTransform;
     [SerializeField]
@@ -21,14 +23,19 @@ public class NavMeshAgentTarget : MonoBehaviour
         navMeshAgent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
         animator.SetFloat("MotionSpeed", motionSpeed);
-        StartCoroutine(MoveToConsumer());
+        if (TimedAppearance)
+        {
+            StartCoroutine(MoveToConsumer(5f));
+        }
     }
-    private IEnumerator MoveToConsumer()
+    public IEnumerator MoveToConsumer(float delay)
     {
-        yield return new WaitForSeconds(5f);
+        yield return new WaitForSeconds(delay);
         movePositionTransform = GameObject.Find("XR Origin").transform;
         doors.SetActive(false); // Todo: Use a nice animation...
     }
+
+
     void Update()
     {
         navMeshAgent.destination = movePositionTransform.position;
