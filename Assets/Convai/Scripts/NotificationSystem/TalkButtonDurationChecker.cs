@@ -1,4 +1,7 @@
+using System;
+using Convai.Scripts;
 using Convai.Scripts.Utils;
+using TMPro;
 using UnityEngine;
 
 /// <summary>
@@ -21,6 +24,49 @@ public class TalkButtonDurationChecker : MonoBehaviour
     /// </summary>
     [HideInInspector] public bool IsTalkKeyReleasedEarly;
 
+    private TMP_InputField _activeInputField;
+    private UIAppearanceSettings _uiAppearanceSettings;
+
+    private void Awake()
+    {
+        _uiAppearanceSettings = FindObjectOfType<UIAppearanceSettings>();
+    }
+
+    private void OnEnable()
+    {
+        ConvaiNPCManager.Instance.OnActiveNPCChanged += ConvaiNPCManager_OnActiveNPCChanged;
+        _uiAppearanceSettings.OnAppearanceChanged += UIAppearanceSettings_OnAppearanceChanged;
+    }
+
+    private void OnDisable()
+    {
+        ConvaiNPCManager.Instance.OnActiveNPCChanged -= ConvaiNPCManager_OnActiveNPCChanged;
+        _uiAppearanceSettings.OnAppearanceChanged -= UIAppearanceSettings_OnAppearanceChanged;
+    }
+
+    private void ConvaiNPCManager_OnActiveNPCChanged(ConvaiNPC convaiNpc)
+    {
+        if (convaiNpc == null)
+        {
+            _activeInputField = null;
+            return;
+        }
+
+        _activeInputField = convaiNpc.FindActiveInputField();
+    }
+
+    private void UIAppearanceSettings_OnAppearanceChanged()
+    {
+        ConvaiNPC convaiNpc = ConvaiNPCManager.Instance.activeConvaiNPC;
+        if (convaiNpc == null)
+        {
+            _activeInputField = null;
+            return;
+        }
+
+        _activeInputField = convaiNpc.FindActiveInputField();
+    }
+
     /// <summary>
     ///     Update is called once per frame.
     ///     It checks if the talk button is being held down or released.
@@ -35,6 +81,12 @@ public class TalkButtonDurationChecker : MonoBehaviour
         // Check if the talk button is released.
         if (ConvaiInputManager.Instance.WasTalkKeyReleased())
         {
+            if (_activeInputField != null && _activeInputField.isFocused)
+            {
+                _timer = 0;
+                return;
+            }
+
             CheckTalkButtonRelease();
             // Reset the timer for the next talk action.
             _timer = 0;

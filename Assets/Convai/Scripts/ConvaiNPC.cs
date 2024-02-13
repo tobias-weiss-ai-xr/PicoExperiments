@@ -23,7 +23,6 @@ namespace Convai.Scripts
         "https://docs.convai.com/api-docs/plugins-and-integrations/unity-plugin/overview-of-the-convainpc.cs-script")]
     public class ConvaiNPC : MonoBehaviour
     {
-        private bool welcomeConsumerFlag = false; // Flag to start greeting once
         private const int AUDIO_SAMPLE_RATE = 44100;
         private const string GRPC_API_ENDPOINT = "stream.convai.com";
         private const int RECORDING_FREQUENCY = AUDIO_SAMPLE_RATE;
@@ -177,23 +176,11 @@ namespace Convai.Scripts
 
         private void Update()
         {
-            ConvaiChatUIHandler h = GetComponent<ConvaiChatUIHandler>();
             // Handle text input focus and submission
             if (isCharacterActive)
-            {
-                if (!welcomeConsumerFlag)
-                    WelcomeConsumer();
                 HandleTextInput();
-            }
-            HandlePlayerInputs();
-        }
 
-        private void WelcomeConsumer()
-        {
-            welcomeConsumerFlag = true;
-            Debug.Log("WelcomeConsumer");
-            var chat = GameObject.Find("Convai Transcript UI").GetComponent<ConvaiChatUIHandler>();
-            chat.SendCharacterText("Sales agent", "Hallo, kann ich ihnen helfen?");
+            HandlePlayerInputs();
         }
 
         private void OnEnable()
@@ -260,6 +247,7 @@ namespace Convai.Scripts
                 // Handle character-specific actions if the character is active and the input field is not focused
                 if (isCharacterActive && (_currentInputField == null || !_currentInputField.isFocused))
                 {
+                    _grpcAPI.InterruptCharacterSpeech();
                     UpdateActionConfig();
                     StartListening();
                 }
@@ -275,7 +263,7 @@ namespace Convai.Scripts
         ///     Updates the action configuration with the current attention object, ie the object currently being pointed by the
         ///     crosshair
         /// </summary>
-        private void UpdateActionConfig()
+        public void UpdateActionConfig()
         {
             if (_actionConfig != null && _convaiCrosshairHandler != null)
                 _actionConfig.CurrentAttentionObject = _convaiCrosshairHandler.FindPlayerReferenceObject();
@@ -329,7 +317,7 @@ namespace Convai.Scripts
         ///     Finds the active input field in the current Transcript UI.
         /// </summary>
         /// <returns>The active TMP_InputField if found, otherwise null.</returns>
-        private static TMP_InputField FindActiveInputField()
+        public TMP_InputField FindActiveInputField()
         {
             // Find all TMP_InputField components in the current Transcript UI.
             TMP_InputField[] inputFields = ConvaiChatUIHandler.Instance.GetCurrentUI().GetCanvasGroup().gameObject
@@ -342,7 +330,7 @@ namespace Convai.Scripts
             // If no active and interactable input field is found, return null
         }
 
-        private void HandleInputSubmission(string input)
+        public void HandleInputSubmission(string input)
         {
             Logger.DebugLog("Sending user text to the server...", Logger.LogCategory.Character);
             _convaiChatUIHandler.SendPlayerText(input);
@@ -470,6 +458,8 @@ namespace Convai.Scripts
                 Logger.Info($"Character {characterName} is talking: {isTalking}", Logger.LogCategory.Character);
                 IsCharacterTalking = isTalking;
                 OnCharacterSpeaking?.Invoke(IsCharacterTalking);
+                if (convaiLipSync != null)
+                    convaiLipSync.IsCharacterTalking = isTalking;
             }
         }
 
@@ -494,7 +484,7 @@ namespace Convai.Scripts
         {
             while (!_stopAudioPlayingLoop)
                 // Check if there are audio clips in the playlist
-                if (_responseAudios.Count > 0)
+                if (_responseAudios.Count > 0 && isCharacterActive)
                 {
                     ResponseAudio currentResponseAudio = _responseAudios[0];
 

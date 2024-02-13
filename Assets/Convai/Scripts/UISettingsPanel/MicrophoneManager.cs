@@ -1,69 +1,72 @@
 using System;
 using UnityEngine;
 
-public class MicrophoneManager : MonoBehaviour
+namespace Convai.Scripts.Utils
 {
-    /// <summary>
-    ///     Singleton instance of the MicrophoneTestController.
-    /// </summary>
-    public static MicrophoneManager Instance { get; private set; }
-
-    /// <summary>
-    ///     The UIMicrophoneSettings component attached to this GameObject.
-    /// </summary>
-    private UIMicrophoneSettings _uiMicrophoneSettings;
-
-    /// <summary>
-    ///     The currently selected microphone device.
-    /// </summary>
-    private string _selectedDevice;
-
-    /// <summary>
-    /// Event indicating that the selected Microphone has changed.
-    /// </summary>
-    public event Action<string> OnMicrophoneDeviceChanged;
-    
-    /// <summary>
-    ///     Get the components on Awake.
-    /// </summary>
-    private void Awake()
+    public class MicrophoneManager : MonoBehaviour
     {
-        // Ensure there's only one instance of MicrophoneTestController
-        if (Instance != null)
+        /// <summary>
+        ///     Singleton instance of the MicrophoneTestController.
+        /// </summary>
+        public static MicrophoneManager Instance { get; private set; }
+
+        /// <summary>
+        ///     The UIMicrophoneSettings component attached to this GameObject.
+        /// </summary>
+        private UIMicrophoneSettings _uiMicrophoneSettings;
+
+        /// <summary>
+        ///     The currently selected microphone device.
+        /// </summary>
+        private string _selectedDevice;
+
+        /// <summary>
+        /// Event indicating that the selected Microphone has changed.
+        /// </summary>
+        public event Action<string> OnMicrophoneDeviceChanged;
+
+        /// <summary>
+        ///     Get the components on Awake.
+        /// </summary>
+        private void Awake()
         {
-            Debug.Log("<color=red> There's More Than One MicrophoneTestController </color> " + transform + " - " +
-                      Instance);
-            Destroy(gameObject);
-            return;
+            // Ensure there's only one instance of MicrophoneTestController
+            if (Instance != null)
+            {
+                Debug.Log("<color=red> There's More Than One MicrophoneTestController </color> " + transform + " - " +
+                          Instance);
+                Destroy(gameObject);
+                return;
+            }
+
+            Instance = this;
+
+            // Get the components
+            _uiMicrophoneSettings = GetComponent<UIMicrophoneSettings>();
         }
 
-        Instance = this;
+        private void Start()
+        {
+            _uiMicrophoneSettings.GetMicrophoneSelectDropdown().onValueChanged
+                .AddListener(OnMicrophoneDropdownValueChanged);
+        }
 
-        // Get the components
-        _uiMicrophoneSettings = GetComponent<UIMicrophoneSettings>();
-    }
+        /// <summary>
+        ///     Called when the selected microphone device is changed.
+        /// </summary>
+        private void OnMicrophoneDropdownValueChanged(int selectedMicrophoneDeviceValue)
+        {
+            _selectedDevice = GetSelectedMicrophoneDevice();
+            OnMicrophoneDeviceChanged?.Invoke(_selectedDevice);
+        }
 
-    private void Start()
-    {
-        _uiMicrophoneSettings.GetMicrophoneSelectDropdown().onValueChanged
-            .AddListener(OnMicrophoneDropdownValueChanged);
-    }
-
-    /// <summary>
-    ///     Called when the selected microphone device is changed.
-    /// </summary>
-    private void OnMicrophoneDropdownValueChanged(int selectedMicrophoneDeviceValue)
-    {
-        _selectedDevice = GetSelectedMicrophoneDevice();
-        OnMicrophoneDeviceChanged?.Invoke(_selectedDevice);
-    }
-
-    /// <summary>
-    ///     Get the selected microphone device from UI settings.
-    /// </summary>
-    public string GetSelectedMicrophoneDevice()
-    {
-        return _selectedDevice = _uiMicrophoneSettings.GetMicrophoneSelectDropdown()
-            .options[_uiMicrophoneSettings.GetSelectedMicrophoneDeviceNumber()].text;
+        /// <summary>
+        ///     Get the selected microphone device from UI settings.
+        /// </summary>
+        public string GetSelectedMicrophoneDevice()
+        {
+            return _selectedDevice = _uiMicrophoneSettings.GetMicrophoneSelectDropdown()
+                .options[_uiMicrophoneSettings.GetSelectedMicrophoneDeviceNumber()].text;
+        }
     }
 }

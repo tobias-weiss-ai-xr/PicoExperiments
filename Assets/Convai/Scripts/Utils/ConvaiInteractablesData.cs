@@ -8,7 +8,7 @@ namespace Convai.Scripts.Utils
     /// </summary>
     [AddComponentMenu("Convai/Convai Interactables Data")]
     [HelpURL(
-        "https://docs.convai.com/api-docs/plugins-and-integrations/unity-plugin/scripts-overview/convaiglobalactionsettings.cs")]
+        "https://docs.convai.com/api-docs/plugins-and-integrations/unity-plugin/scripts-overview")]
     public class ConvaiInteractablesData : MonoBehaviour
     {
         // [Tooltip("Flag to toggle display of actions")] [SerializeField]

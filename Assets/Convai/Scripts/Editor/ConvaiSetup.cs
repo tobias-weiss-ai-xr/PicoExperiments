@@ -1,332 +1,405 @@
 #if UNITY_EDITOR
 
-using System;
-using System.IO;
-using System.Net;
-using System.Text;
-using System.Threading.Tasks;
-using Convai.Scripts.Utils;
-using Newtonsoft.Json;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
+using UnityEditor.UIElements;
+using UnityEditor.VersionControl;
+using UnityEditor.VSAttribution;
 using Object = UnityEngine.Object;
 
-namespace Convai.Scripts.Editor
+using Newtonsoft.Json;
+
+using System.Security.Cryptography;
+using System.IO;
+using System.Collections.Generic;
+using System.Net;
+using System.Text;
+using System;
+using System.Threading.Tasks;
+
+using UnityEditor;
+using UnityEditor.UI;
+using Convai.Scripts.Utils;
+
+public class ConvaiSetup : EditorWindow
 {
-    /// <summary>
-    ///     This class is responsible for setting up the Convai API key in the Unity editor.
-    /// </summary>
-    public class ConvaiSetup : EditorWindow
+    private const string API_KEY_PATH = "Assets/Resources/ConvaiAPIKey.asset";
+    private const string API_URL = "https://api.convai.com/user/referral-source-status";
+
+    [MenuItem("Convai/Convai Setup")]
+    public static void ShowConvaiSetupWindow()
     {
-        private const string API_KEY_PATH = "Assets/Resources/ConvaiAPIKey.asset";
-        private const string API_URL = "https://api.convai.com/user/referral-source-status";
+        ConvaiSetup wnd = GetWindow<ConvaiSetup>();
+    }
 
-        /// <summary>
-        ///     This method is called when the window is enabled.
-        ///     It checks if the API key file exists and if not, it sets up the Convai API key.
-        /// </summary>
-        private void OnEnable()
+    [MenuItem("Convai/Documentation")]
+    public static void OpenDocumentation()
+    {
+        Application.OpenURL("https://docs.convai.com/plugins-and-integrations/unity-plugin");
+    }
+
+    public class UpdateSource
+    {
+        [JsonProperty("referral_source")] public string referral_source;
+
+        public UpdateSource(string referral_source)
         {
-            if (!File.Exists(API_KEY_PATH)) SetupConvaiAPIKey();
+            this.referral_source = referral_source;
+        }
+    }
+
+    public class referralSourceStatus
+    {
+        [JsonProperty("referral_source_status")] public string referral_source_status;
+        [JsonProperty("status")] public string status;
+    }
+
+    async Task<string> CheckReferralStatus(string url, string apiKey)
+    {
+        // Create a new HttpWebRequest object
+        var request = WebRequest.Create(url);
+        request.Method = "post";
+
+        // Set the request headers
+        request.ContentType = "application/json";
+
+        string bodyJsonString = "{}";
+
+        // Convert the json string to bytes
+        byte[] jsonBytes = Encoding.UTF8.GetBytes(bodyJsonString);
+
+        referralSourceStatus referralStatus;
+
+        request.Headers.Add("CONVAI-API-KEY", apiKey);
+
+        // Write the data to the request stream
+        using (Stream requestStream = await request.GetRequestStreamAsync())
+        {
+            await requestStream.WriteAsync(jsonBytes, 0, jsonBytes.Length);
         }
 
-        /// <summary>
-        ///     This method creates the GUI for the Convai setup window.
-        ///     It includes a text field for entering the API key and buttons for starting the setup and opening the documentation.
-        /// </summary>
-        public void CreateGUI()
+        // Get the response from the server
+        try
         {
-            VisualElement root = rootVisualElement;
-
-            ScrollView page2 = new();
-
-            // Add Logo
-            root.Add(CreateImage("Assets/Convai/Images/color.png", 100));
-
-            // Add Elements to Page
-            page2.Add(CreateLabel("Enter your API Key:", 16));
-            TextField apiKeyTextField = new("", -1, false, true, '*');
-            page2.Add(apiKeyTextField);
-
-            page2.Add(CreateButton("Begin!", 16, FontStyle.Bold, () =>
+            using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
             {
-                HandleBeginButtonAction(apiKeyTextField.text).ContinueWith(t =>
+                using (Stream streamResponse = response.GetResponseStream())
                 {
-                    if (t.Exception != null)
-                        // Optionally handle exceptions
-                        Debug.LogError($"Error while processing API Key: {t.Exception.InnerException?.Message}");
-                });
-            }));
-
-
-            page2.Add(CreateButton("How do I find my API key?", 12, FontStyle.Normal,
-                () => { Application.OpenURL("https://docs.convai.com/api-docs/plugins/unity-plugin"); }));
-
-            // Set Margins for Page
-            SetMargins(page2, 20);
-
-            root.Add(page2);
-        }
-
-        /// <summary>
-        ///     This method handles the action of the Begin button.
-        ///     It checks if the entered API key is valid and if so, it closes the window.
-        /// </summary>
-        private async Task HandleBeginButtonAction(string apiKey)
-        {
-            bool validKey = await BeginButtonTask(apiKey);
-            if (validKey)
-                Close();
-            // if the key is not valid, the window remains open
-        }
-
-
-        /// <summary>
-        ///     This method creates an image with the given path and height.
-        /// </summary>
-        /// <param name="path"> Path to the image </param>
-        /// <param name="height"> Height of the image </param>
-        /// <returns> The created image </returns>
-        private Image CreateImage(string path, float height)
-        {
-            Image image = new()
-            {
-                image = AssetDatabase.LoadAssetAtPath<Texture>(path),
-                style =
-                {
-                    height = height
-                }
-            };
-            SetPadding(image, 10);
-            return image;
-        }
-
-        /// <summary>
-        /// </summary>
-        /// <param name="text"></param>
-        /// <param name="fontSize"></param>
-        /// <returns></returns>
-        private Label CreateLabel(string text, int fontSize)
-        {
-            return new Label(text) { style = { fontSize = fontSize } };
-        }
-
-        /// <summary>
-        /// </summary>
-        /// <param name="text"></param>
-        /// <param name="fontSize"></param>
-        /// <param name="fontStyle"></param>
-        /// <param name="onClickAction"></param>
-        /// <returns></returns>
-        private Button CreateButton(string text, int fontSize, FontStyle fontStyle, Action onClickAction)
-        {
-            Button button = new(onClickAction)
-            {
-                text = text,
-                style =
-                {
-                    fontSize = fontSize,
-                    unityFontStyleAndWeight = fontStyle,
-                    alignSelf = Align.Center
-                }
-            };
-            SetPadding(button, 10);
-            return button;
-        }
-
-        /// <summary>
-        /// </summary>
-        /// <param name="element"></param>
-        /// <param name="margin"></param>
-        private void SetMargins(VisualElement element, float margin)
-        {
-            element.style.marginBottom = margin;
-            element.style.marginLeft = margin;
-            element.style.marginRight = margin;
-            element.style.marginTop = margin;
-        }
-
-        /// <summary>
-        /// </summary>
-        /// <param name="element"></param>
-        /// <param name="padding"></param>
-        private void SetPadding(VisualElement element, float padding)
-        {
-            element.style.paddingBottom = padding;
-            element.style.paddingLeft = padding;
-            element.style.paddingRight = padding;
-            element.style.paddingTop = padding;
-        }
-
-
-        /// <summary>
-        ///     This method opens the Convai setup window.
-        /// </summary>
-        [MenuItem("Convai/Convai Setup", false, 1)]
-        public static void SetupConvaiAPIKey()
-        {
-            GetWindow<ConvaiSetup>().titleContent = new GUIContent("Convai Setup");
-        }
-
-        /// <summary>
-        ///     This method opens the Convai documentation in the default web browser.
-        /// </summary>
-        [MenuItem("Convai/Documentation", false, 5)]
-        public static void OpenDocumentation()
-        {
-            Application.OpenURL("https://docs.convai.com/plugins-and-integrations/unity-plugin");
-        }
-
-        /// <summary>
-        ///     This method checks the referral status of the entered API key.
-        ///     It sends a POST request to the Convai API and returns the referral status.
-        /// </summary>
-        /// <param name="url"> URL of the Convai API </param>
-        /// <param name="apiKey"> API key to be checked </param>
-        /// <returns> Referral status of the API key </returns>
-        private async Task<string> CheckReferralStatus(string url, string apiKey)
-        {
-            WebRequest request = WebRequest.Create(url);
-            request.Method = "POST";
-            request.ContentType = "application/json";
-            request.Headers.Add("CONVAI-API-KEY", apiKey);
-
-            try
-            {
-                // Send the request
-                await using (Stream requestStream = await request.GetRequestStreamAsync())
-                {
-                    byte[] jsonBytes = Encoding.UTF8.GetBytes("{}");
-                    await requestStream.WriteAsync(jsonBytes, 0,
-                        jsonBytes.Length); // Write the JSON bytes to the request stream
-                }
-
-                // Get the response
-                using HttpWebResponse response = (HttpWebResponse)await request.GetResponseAsync();
-                await using Stream
-                    streamResponse =
-                        response.GetResponseStream(); // Get the stream containing content returned by the server.
-                if (streamResponse != null)
-                {
-                    using StreamReader
-                        reader = new(streamResponse); // Open the stream using a StreamReader for easy access.
-
-                    string responseContent = await reader.ReadToEndAsync();
-                    ReferralSourceStatus referralStatus =
-                        JsonConvert.DeserializeObject<ReferralSourceStatus>(responseContent); // Read the content.
-
-                    return referralStatus.referralSourceStatusProperty;
-                }
-            }
-            catch (WebException e)
-            {
-                Debug.LogError($"{e.Message}\nPlease check if API Key is correct.");
-                return string.Empty;
-            }
-            catch (Exception e)
-            {
-                Debug.LogError(e);
-                return string.Empty;
-            }
-
-            return string.Empty; // Added this return for the case where streamResponse is null
-        }
-
-
-        /// <summary>
-        ///     This method checks if the entered API key is valid.
-        ///     It returns true if the API key is valid and false if not.
-        /// </summary>
-        /// <param name="apiKey"> API key to be checked </param>
-        /// <returns> True if the API key is valid, false if not </returns>
-        private async Task<bool> BeginButtonTask(string apiKey)
-        {
-            ConvaiAPIKeySetup aPIKeySetup = CreateInstance<ConvaiAPIKeySetup>();
-
-            aPIKeySetup.APIKey = apiKey;
-
-            if (!string.IsNullOrEmpty(apiKey))
-            {
-                string referralStatus =
-                    await CheckReferralStatus(API_URL, apiKey);
-
-                if (!string.IsNullOrEmpty(referralStatus))
-                {
-                    CreateOrUpdateAPIKeyAsset(aPIKeySetup);
-
-                    if (referralStatus == "undefined")
+                    using (StreamReader reader = new StreamReader(streamResponse))
                     {
-                        EditorUtility.DisplayDialog("Warning", "API Key loaded successfully with undefined status!",
-                            "OK");
-                        return true;
-                    }
+                        string responseContent = reader.ReadToEnd();
 
-                    EditorUtility.DisplayDialog("Success", "API Key loaded successfully!", "OK");
+                        referralStatus = JsonConvert.DeserializeObject<referralSourceStatus>(responseContent);
+                    }
+                }
+                return referralStatus.referral_source_status;
+            }
+        }
+        catch (WebException e)
+        {
+            Debug.LogError(e.Message + "\nPlease check if API Key is correct.");
+            return null;
+        }
+        catch (Exception e)
+        {
+            Debug.LogError(e);
+            return null;
+        }
+    }
+
+    async Task<bool> SendReferralRequest(string url, string bodyJsonString, string apiKey)
+    {
+        // Create a new HttpWebRequest object
+        var request = WebRequest.Create(url);
+        request.Method = "post";
+
+        // Set the request headers
+        request.ContentType = "application/json";
+
+        // Convert the json string to bytes
+        byte[] jsonBytes = Encoding.UTF8.GetBytes(bodyJsonString);
+
+        request.Headers.Add("CONVAI-API-KEY", apiKey);
+
+        // Write the data to the request stream
+        using (Stream requestStream = await request.GetRequestStreamAsync())
+        {
+            await requestStream.WriteAsync(jsonBytes, 0, jsonBytes.Length);
+        }
+
+        // Get the response from the server
+        try
+        {
+            using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
+            {
+                using (Stream streamResponse = response.GetResponseStream())
+                {
+                    using (StreamReader reader = new StreamReader(streamResponse))
+                    {
+                        string responseContent = reader.ReadToEnd();
+                    }
+                }
+
+                if ((int)response.StatusCode == 200)
+                {
                     return true;
                 }
-
-                EditorUtility.DisplayDialog("Error", "Please enter a valid API Key.", "OK");
-                return false;
             }
-
-            EditorUtility.DisplayDialog("Error", "Please enter a valid API Key.", "OK");
+        }
+        catch (WebException e)
+        {
+            Debug.LogError(e.Message + "\nPlease check if API Key is correct.");
+            return false;
+        }
+        catch (Exception e)
+        {
+            Debug.LogError(e);
             return false;
         }
 
+        return false;
+    }
 
-        /// <summary>
-        ///     This method creates or updates the API key asset.
-        ///     If the asset does not exist, it creates a new one.
-        ///     If the asset already exists, it deletes the old one and creates a new one.
-        /// </summary>
-        /// <param name="aPIKeySetup"> API key setup </param>
-        private void CreateOrUpdateAPIKeyAsset(Object aPIKeySetup)
+    private async Task<bool> BeginButtonTask(string apiKey)
+    {
+
+        ConvaiAPIKeySetup aPIKeySetup = CreateInstance<ConvaiAPIKeySetup>();
+
+        aPIKeySetup.APIKey = apiKey;
+
+        if (!string.IsNullOrEmpty(apiKey))
         {
-            const string assetPath = "Assets/Resources/ConvaiAPIKey.asset";
+            string referralStatus =
+                await CheckReferralStatus(API_URL, apiKey);
 
-            if (!File.Exists(assetPath))
+            if (referralStatus != null)
             {
-                if (!AssetDatabase.IsValidFolder("Assets/Resources"))
-                    AssetDatabase.CreateFolder("Assets", "Resources");
+                CreateOrUpdateAPIKeyAsset(aPIKeySetup);
 
-                AssetDatabase.CreateAsset(aPIKeySetup, assetPath);
+                if (referralStatus.Trim().ToLower() == "undefined" || referralStatus.Trim().ToLower() == "")
+                {
+                    EditorUtility.DisplayDialog("Warning", "[Step 1/2] API Key loaded successfully!",
+                        "OK");
+                    return true;
+                }
+
+                EditorUtility.DisplayDialog("Success", "API Key loaded successfully!", "OK");
+
+                // if the status is already set, do not show the referral dialog
+                return false;
+            }
+
+            else
+            {
+                EditorUtility.DisplayDialog("Error", "Something went wrong. Please check your API Key. Contact support@convai.com for more help. ", "OK");
+                return false;
+            }
+
+        }
+
+        EditorUtility.DisplayDialog("Error", "Please enter a valid API Key.", "OK");
+        return false;
+    }
+
+    private void CreateOrUpdateAPIKeyAsset(ConvaiAPIKeySetup aPIKeySetup)
+    {
+        string assetPath = "Assets/Resources/ConvaiAPIKey.asset";
+
+        if (!File.Exists(assetPath))
+        {
+            if (!AssetDatabase.IsValidFolder("Assets/Resources"))
+                AssetDatabase.CreateFolder("Assets", "Resources");
+
+            AssetDatabase.CreateAsset(aPIKeySetup, assetPath);
+        }
+        else
+        {
+            AssetDatabase.DeleteAsset(assetPath);
+            AssetDatabase.CreateAsset(aPIKeySetup, assetPath);
+        }
+
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+    }
+
+    public void CreateGUI()
+    {
+        // Each editor window contains a root VisualElement object
+        VisualElement root = rootVisualElement;
+
+        VisualElement page1 = new ScrollView();
+
+        VisualElement page2 = new ScrollView();
+
+        root.Add(new Label(""));
+
+        Image convaiLogoImage = new Image();
+        convaiLogoImage.image = AssetDatabase.LoadAssetAtPath<Texture>("Assets/Convai/Images/color.png");
+        convaiLogoImage.style.height = 100;
+
+        convaiLogoImage.style.paddingBottom = 10;
+        convaiLogoImage.style.paddingTop = 10;
+        convaiLogoImage.style.paddingRight = 10;
+        convaiLogoImage.style.paddingLeft = 10;
+
+        root.Add(convaiLogoImage);
+
+        Label convaiSetupLabel = new Label("Enter your API Key:");
+        convaiSetupLabel.style.fontSize = 16;
+
+        TextField APIKeyTextField = new TextField("", -1, false, true, '*');
+
+        Button beginButton = new Button(async () =>
+        {
+            bool isPage2 = await BeginButtonTask(APIKeyTextField.text);
+
+            if (isPage2)
+            {
+                root.Remove(page1);
+                root.Add(page2);
             }
             else
             {
-                AssetDatabase.DeleteAsset(assetPath);
-                AssetDatabase.CreateAsset(aPIKeySetup, assetPath);
+                this.Close();
             }
+        });
 
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
+        beginButton.text = "Begin!";
+
+        beginButton.style.fontSize = 16;
+        beginButton.style.unityFontStyleAndWeight = FontStyle.Bold;
+        beginButton.style.alignSelf = Align.Center;
+
+        beginButton.style.paddingBottom = 10;
+        beginButton.style.paddingLeft = 30;
+        beginButton.style.paddingRight = 30;
+        beginButton.style.paddingTop = 10;
+
+        Button docsLink = new Button(() =>
+        {
+            Application.OpenURL("https://docs.convai.com/api-docs/plugins-and-integrations/unity-plugin/setting-up-unity-plugin");
+        });
+
+        docsLink.text = "How do I find my API key?";
+        docsLink.style.alignSelf = Align.Center;
+        docsLink.style.paddingBottom = 5;
+        docsLink.style.paddingLeft = 50;
+        docsLink.style.paddingRight = 50;
+        docsLink.style.paddingTop = 5;
+
+        page1.Add(convaiSetupLabel);
+        page1.Add(new Label("\n"));
+        page1.Add(APIKeyTextField);
+        page1.Add(new Label("\n"));
+        page1.Add(beginButton);
+        page1.Add(new Label("\n"));
+        page1.Add(docsLink);
+
+        page1.style.marginBottom = 20;
+        page1.style.marginLeft = 20;
+        page1.style.marginRight = 20;
+        page1.style.marginTop = 20;
+
+        Label attributionSourceLabel = new Label("[Step 2/2] Where did you discover Convai?");
+
+        attributionSourceLabel.style.fontSize = 14;
+        attributionSourceLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+
+        List<string> attributionSourceOptions = new List<string>
+        {
+            "Search Engine (Google, Bing, etc.)",
+            "Youtube",
+            "Social Media (Facebook, Instagram, TikTok, etc.)",
+            "Friend Referral",
+            "Unity Asset Store",
+            "Others"
+        };
+
+
+        TextField otherOptionTextField = new TextField();
+
+        string currentChoice = "";
+        int currentChoiceIndex = -1;
+
+        DropdownMenu dropdownMenu = new DropdownMenu();
+
+        ToolbarMenu toolbarMenu = new ToolbarMenu { text = "Click here to select option..." };
+
+        foreach (string choice in attributionSourceOptions)
+        {
+            toolbarMenu.menu.AppendAction(choice,
+                action =>
+                {
+                    currentChoice = choice;
+                    toolbarMenu.text = choice;
+                });
         }
 
+        toolbarMenu.style.paddingBottom = 10;
+        toolbarMenu.style.paddingLeft = 30;
+        toolbarMenu.style.paddingRight = 30;
+        toolbarMenu.style.paddingTop = 10;
 
-        /// <summary>
-        ///     This class is used to deserialize the JSON response from the Convai API.
-        ///     It represents the update source for the referral status.
-        /// </summary>
-        public class UpdateSource
+        Button continueButton = new Button(() =>
         {
-            public UpdateSource(string referralSource)
+            UpdateSource updateSource;
+
+            currentChoiceIndex = attributionSourceOptions.IndexOf(toolbarMenu.text);
+
+            if (currentChoiceIndex < 0)
             {
-                ReferralSource = referralSource;
+                EditorUtility.DisplayDialog("Error", "Please select a valid referral source!", "OK");
             }
+            else
+            {
+                updateSource = new UpdateSource(attributionSourceOptions[currentChoiceIndex]);
 
-            [JsonProperty("referral_source")] public string ReferralSource { get; set; }
-        }
+                if (attributionSourceOptions[currentChoiceIndex] == "Others")
+                {
+                    updateSource.referral_source = otherOptionTextField.text;
+                }
 
-        /// <summary>
-        ///     This class is used to deserialize the JSON response from the Convai API.
-        /// </summary>
-        public class ReferralSourceStatus
-        {
-            [JsonProperty("referral_source_status")]
-            public string referralSourceStatusProperty { get; set; }
+                ConvaiAPIKeySetup apiKeyObject = AssetDatabase.LoadAssetAtPath<ConvaiAPIKeySetup>("Assets/Resources/ConvaiAPIKey.Asset");
 
-            [JsonProperty("status")] public string Status { get; set; }
-        }
+                SendReferralRequest("https://api.convai.com/user/update-source", JsonConvert.SerializeObject(updateSource), apiKeyObject.APIKey);
+
+                if (attributionSourceOptions[currentChoiceIndex] == "Unity Asset Store")
+                {
+                    // VS Attribution
+                    VSAttribution.SendAttributionEvent("Initial Setup", "Convai Technologies, Inc.", apiKeyObject.APIKey);
+                }
+
+                this.Close();
+            }
+        });
+
+        continueButton.text = "Continue";
+
+        continueButton.style.fontSize = 16;
+        continueButton.style.unityFontStyleAndWeight = FontStyle.Bold;
+        continueButton.style.alignSelf = Align.Center;
+
+        continueButton.style.paddingBottom = 5;
+        continueButton.style.paddingLeft = 30;
+        continueButton.style.paddingRight = 30;
+        continueButton.style.paddingTop = 5;
+
+        page2.Add(new Label("\n"));
+        page2.Add(attributionSourceLabel);
+        page2.Add(new Label("\n"));
+
+        page2.Add(toolbarMenu);
+        page2.Add(new Label("\nIf selected Others above, please specifiy from where: "));
+
+        page2.Add(otherOptionTextField);
+        page2.Add(new Label("\n"));
+        page2.Add(continueButton);
+
+        page2.style.marginBottom = 20;
+        page2.style.marginLeft = 20;
+        page2.style.marginRight = 20;
+        page2.style.marginTop = 20;
+        root.Add(page1);
     }
 }
 #endif

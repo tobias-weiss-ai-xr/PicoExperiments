@@ -198,7 +198,7 @@ PrefabInstance:
     - target: {fileID: -8679921383154817045, guid: ab4f9dc9dff817048a2c6b576e051f05,
         type: 3}
       propertyPath: m_RootOrder
-      value: -1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: ab4f9dc9dff817048a2c6b576e051f05,
         type: 3}
@@ -419,7 +419,7 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Controller
       value: 
-      objectReference: {fileID: 9100000, guid: f5248f05624463e4db81a8b35ac98aa7, type: 2}
+      objectReference: {fileID: 9100000, guid: bd8b6159a59eb2f40b48020ccf82a039, type: 2}
     - target: {fileID: 5866666021909216657, guid: ab4f9dc9dff817048a2c6b576e051f05,
         type: 3}
       propertyPath: m_ApplyRootMotion
@@ -875,6 +875,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 88bce56f6985ef84f8835a0152628fa1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  isCharacterTalking: 0
   faceModelType: 3
   BlendshapeType: 2
   HeadSkinnedMeshRenderer: {fileID: 9193368781433752930}

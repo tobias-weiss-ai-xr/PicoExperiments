@@ -15,6 +15,7 @@ namespace Convai.Scripts.Utils
         }
 
         private const float Framerate = 1f / 100f;
+        [HideInInspector] public bool IsCharacterTalking = false;
         [HideInInspector] public FaceModel faceModelType = FaceModel.OvrModelName;
 
         [Tooltip(
@@ -36,7 +37,8 @@ namespace Convai.Scripts.Utils
         [Tooltip("Game object with the bone of the tongue for the character, if available. Leave empty if not.")]
         public GameObject tongueBone; // even though actually tongue doesn't have a bone
 
-        [Tooltip("Set a custom position for the tongue bone so that it looks natural.")] [SerializeField]
+        [Tooltip("Set a custom position for the tongue bone so that it looks natural.")]
+        [SerializeField]
         private Vector3 tongueBoneOffset = new(-0.01f, 0.015f, 0f);
 
         [Tooltip("The index of the first blendshape that will be manipulated.")]
@@ -74,6 +76,7 @@ namespace Convai.Scripts.Utils
 
         private void OnApplicationQuit()
         {
+            StopLipSync();
         }
 
         /// <summary>
@@ -175,7 +178,7 @@ namespace Convai.Scripts.Utils
         {
             // Check if there are items in the faceDataList and the character is talking.
 
-            if (faceDataList.Count > 0 && faceDataList != null)
+            if (faceDataList.Count > 0 && faceDataList != null && IsCharacterTalking)
             {
                 // Dequeue the next frame of visemes data from the faceDataList.
                 if (faceDataList[0].Count > 0 && faceDataList[0] != null)
@@ -375,7 +378,6 @@ namespace Convai.Scripts.Utils
                                 weight = 1.2f;
                                 HeadSkinnedMeshRenderer.SetBlendShapeWeight(3 + firstIndex,
                                     _frame.Oh * weight * alpha * weightMultiplier); // V_Tight_O
-
 
                                 // UU
                                 weight = 1.0f;

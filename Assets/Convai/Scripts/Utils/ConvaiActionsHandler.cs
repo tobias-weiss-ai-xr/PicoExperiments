@@ -499,7 +499,7 @@ namespace Convai.Scripts.Utils
 
         private IEnumerator MoveTo(GameObject target)
         {
-            ActionStarted?.Invoke("PickUp", target);
+            ActionStarted?.Invoke("MoveTo", target);
             // If the target is null or not active, we don't want to move towards it.
             if (target == null || !target.activeInHierarchy)
             {
@@ -553,7 +553,7 @@ namespace Convai.Scripts.Utils
             // Transition to the "Idle" animation once we've reached the target.
             animator.CrossFade(Animator.StringToHash("Idle"), 0.1f);
 
-            ActionEnded?.Invoke("PickUp", target);
+            ActionEnded?.Invoke("MoveTo", target);
         }
 
         private IEnumerator PickUp(GameObject target)

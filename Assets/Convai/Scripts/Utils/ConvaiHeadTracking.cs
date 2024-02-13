@@ -10,7 +10,7 @@ namespace Convai.Scripts.Utils
     [DisallowMultipleComponent]
     [AddComponentMenu("Convai/Character Head & Eye Tracking")]
     [HelpURL(
-        "https://docs.convai.com/api-docs/plugins-and-integrations/unity-plugin/scripts-overview")]
+        "https://docs.convai.com/api-docs/plugins-and-integrations/unity-plugin/scripts-overview/convaiheadtracking")]
     public class ConvaiHeadTracking : MonoBehaviour
     {
         private const float POSITION_UPDATE_DELAY = 2f;

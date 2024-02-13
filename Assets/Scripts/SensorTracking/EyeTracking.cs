@@ -52,7 +52,7 @@ public class EyeTracking : MonoBehaviour
                 {
                     gazePoint.gameObject.SetActive(true);
                     gazePoint.transform.position = hit.point;
-                    Debug.Log($"TW: gaze dot position {gazePoint.transform.position.ToString()}\n name {hit.transform.name.ToString()}\n TW: hit distance {hit.distance.ToString()} \n TW: xr origin {xrOrigin.position}");
+                    // Debug.Log($"TW: gaze dot position {gazePoint.transform.position.ToString()}\n name {hit.transform.name.ToString()}\n TW: hit distance {hit.distance.ToString()} \n TW: xr origin {xrOrigin.position}");
                 }
                 else
                 {

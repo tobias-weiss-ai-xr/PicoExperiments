@@ -1,8 +1,15 @@
 fileFormatVersion: 2
+<<<<<<<< HEAD:Assets/Convai/Animations/Dance.anim.meta
+guid: 465574ad1d25cde479f17d88aa476633
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 0
+========
 guid: f99debb7c965d384a9e9d653bcf1411c
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 11400000
+>>>>>>>> main:Assets/Convai/Settings/LoggerSettings.asset.meta
   userData: 
   assetBundleName: 
   assetBundleVariant: 

@@ -5,6 +5,7 @@ using UnityEngine.InputSystem;
 /// The Input Manager class for Convai, allowing you to control inputs in your project through this class.
 /// It supports both the New Input System and Old Input System.
 /// </summary>
+[DefaultExecutionOrder(-105)]
 public class ConvaiInputManager : MonoBehaviour
 {
     /// <summary>
@@ -16,38 +17,38 @@ public class ConvaiInputManager : MonoBehaviour
     /// Input Action for player movement.
     /// </summary>
     [Header("Player Related")]
-    [SerializeField] private InputAction _playerMovementKeyAction;
+    public InputAction PlayerMovementKeyAction;
 
     /// <summary>
     /// Input Action for player jumping.
     /// </summary>
-    [SerializeField] private InputAction _playerJumpKeyAction;
+    public InputAction PlayerJumpKeyAction;
 
     /// <summary>
     /// Input Action for player running.
     /// </summary>
-    [SerializeField] private InputAction _playerRunKeyAction;
+    public InputAction PlayerRunKeyAction;
 
     /// <summary>
     /// Input Action for locking the cursor.
     /// </summary>
     [Header("General")]
-    [SerializeField] private InputAction _cursorLockKeyAction;
+    public InputAction CursorLockKeyAction;
 
     /// <summary>
     /// Input Action for sending text.
     /// </summary>
-    [SerializeField] private InputAction _textSendKeyAction;
+    public InputAction TextSendKeyAction;
 
     /// <summary>
     /// Input Action for talk functionality.
     /// </summary>
-    [SerializeField] private InputAction _talkKeyAction;
+    public InputAction TalkKeyAction;
 
     /// <summary>
     /// Action to open the Settings Panel.
     /// </summary>
-    [SerializeField] private InputAction _settingsKeyAction;
+    public InputAction SettingsKeyAction;
 
     /// <summary>
     /// Awake is called when the script instance is being loaded.
@@ -70,13 +71,13 @@ public class ConvaiInputManager : MonoBehaviour
     /// </summary>
     private void OnEnable()
     {
-        _playerMovementKeyAction.Enable();
-        _playerJumpKeyAction.Enable();
-        _playerRunKeyAction.Enable();
-        _cursorLockKeyAction.Enable();
-        _textSendKeyAction.Enable();
-        _talkKeyAction.Enable();
-        _settingsKeyAction.Enable();
+        PlayerMovementKeyAction.Enable();
+        PlayerJumpKeyAction.Enable();
+        PlayerRunKeyAction.Enable();
+        CursorLockKeyAction.Enable();
+        TextSendKeyAction.Enable();
+        TalkKeyAction.Enable();
+        SettingsKeyAction.Enable();
     }
 
     /// <summary>
@@ -139,7 +140,7 @@ public class ConvaiInputManager : MonoBehaviour
     {
         // Check if the cursor lock key was pressed this frame
 #if ENABLE_INPUT_SYSTEM
-        return _cursorLockKeyAction.WasPressedThisFrame();
+        return CursorLockKeyAction.WasPressedThisFrame();
 #else
         return Input.GetKeyDown(KeyCode.Escape);
 #endif
@@ -152,7 +153,7 @@ public class ConvaiInputManager : MonoBehaviour
     {
         // Check if the text send key was pressed this frame
 #if ENABLE_INPUT_SYSTEM
-        return _textSendKeyAction.WasPressedThisFrame();
+        return TextSendKeyAction.WasPressedThisFrame();
 #else
         return Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter);
 #endif
@@ -165,7 +166,7 @@ public class ConvaiInputManager : MonoBehaviour
     {
         // Check if the talk key was pressed this frame
 #if ENABLE_INPUT_SYSTEM
-        return _talkKeyAction.WasPressedThisFrame();
+        return TalkKeyAction.WasPressedThisFrame();
 #else
         return Input.GetKeyDown(KeyCode.T);
 #endif
@@ -178,7 +179,7 @@ public class ConvaiInputManager : MonoBehaviour
     {
         // Check if the talk key is being held down
 #if ENABLE_INPUT_SYSTEM
-        return _talkKeyAction.IsPressed();
+        return TalkKeyAction.IsPressed();
 #else
         return Input.GetKey(KeyCode.T);
 #endif
@@ -188,7 +189,7 @@ public class ConvaiInputManager : MonoBehaviour
     /// Retrieves the InputAction associated with the talk key.
     /// </summary>
     /// <returns>The InputAction for handling talk-related input.</returns>
-    public InputAction GetTalkKeyAction() => _talkKeyAction;
+    public InputAction GetTalkKeyAction() => TalkKeyAction;
 
     /// <summary>
     /// Checks if the talk key was released.
@@ -197,7 +198,7 @@ public class ConvaiInputManager : MonoBehaviour
     {
         // Check if the talk key was released this frame
 #if ENABLE_INPUT_SYSTEM
-        return _talkKeyAction.WasReleasedThisFrame();
+        return TalkKeyAction.WasReleasedThisFrame();
 #else
         return Input.GetKeyUp(KeyCode.T);
 #endif
@@ -210,7 +211,7 @@ public class ConvaiInputManager : MonoBehaviour
     {
         // Check if the Settings key was pressed this frame
 #if ENABLE_INPUT_SYSTEM
-        return _settingsKeyAction.WasPressedThisFrame();
+        return SettingsKeyAction.WasPressedThisFrame();
 #else
         return Input.GetKeyDown(KeyCode.F10);
 #endif
@@ -224,7 +225,7 @@ public class ConvaiInputManager : MonoBehaviour
     {
         // Check if the jump key was pressed this frame
 #if ENABLE_INPUT_SYSTEM
-        return _playerJumpKeyAction.WasPressedThisFrame();
+        return PlayerJumpKeyAction.WasPressedThisFrame();
 #else
         return Input.GetButton("Jump");
 #endif
@@ -237,7 +238,7 @@ public class ConvaiInputManager : MonoBehaviour
     {
         // Check if the run key is being held down
 #if ENABLE_INPUT_SYSTEM
-        return _playerRunKeyAction.IsPressed();
+        return PlayerRunKeyAction.IsPressed();
 #else
         return Input.GetKey(KeyCode.LeftShift);
 #endif
@@ -250,7 +251,7 @@ public class ConvaiInputManager : MonoBehaviour
     {
         // Get the player's movement input vector
 #if ENABLE_INPUT_SYSTEM
-        return _playerMovementKeyAction.ReadValue<Vector2>();
+        return PlayerMovementKeyAction.ReadValue<Vector2>();
 #else
         Vector2 inputMoveDir = new Vector2(0, 0);
         // Manual input for player movement

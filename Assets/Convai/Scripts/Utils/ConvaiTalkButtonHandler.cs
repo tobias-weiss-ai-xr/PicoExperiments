@@ -14,6 +14,8 @@ namespace Convai.Scripts.Utils
 
         private bool _subscribed;
 
+        private ConvaiGRPCAPI _grpcAPI;
+
         protected override void Start()
         {
             base.Start();
@@ -26,6 +28,8 @@ namespace Convai.Scripts.Utils
             {
                 Logger.Warn("Instance of ConvaiNPCManager is not yet initialized.", Logger.LogCategory.Character);
             }
+
+            _grpcAPI = ConvaiGRPCAPI.Instance;
         }
 
         protected override void OnEnable()
@@ -91,6 +95,8 @@ namespace Convai.Scripts.Utils
 
             if (_currentActiveNPC != null)
             {
+                _grpcAPI.InterruptCharacterSpeech();
+                _currentActiveNPC.UpdateActionConfig();
                 _currentActiveNPC.StartListening();
                 IncreaseScale();
                 Logger.DebugLog($"{gameObject.name} Was Clicked.", Logger.LogCategory.Character);

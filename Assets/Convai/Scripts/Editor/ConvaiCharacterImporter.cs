@@ -93,7 +93,7 @@ namespace Convai.Scripts.Editor
             Button docsLink = new(() =>
             {
                 Application.OpenURL(
-                    "https://docs.convai.com/api-docs-restructure/plugins-and-integrations/unity-plugin/creating-characters");
+                    "https://docs.convai.com/api-docs/plugins-and-integrations/unity-plugin/importing-a-character-from-convai-playground");
             })
             {
                 text = "How do I create a character?",

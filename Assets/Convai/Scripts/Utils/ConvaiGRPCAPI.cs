@@ -58,7 +58,6 @@ namespace Convai.Scripts.Utils
             _chatUIHandler = FindObjectOfType<ConvaiChatUIHandler>();
         }
 
-
         private void Start()
         {
             ConvaiNPCManager.Instance.OnActiveNPCChanged += HandleActiveNPCChanged;
@@ -81,27 +80,21 @@ namespace Convai.Scripts.Utils
         {
             ConvaiNPCManager.Instance.OnActiveNPCChanged -= HandleActiveNPCChanged;
 
+            InterruptCharacterSpeech();
             try
             {
                 _cancellationTokenSource?.Cancel();
+            }
+            catch (Exception ex)
+            {
+                // Handle the Exception, which can occur if the CancellationTokenSource is already disposed. 
+                Logger.Warn("Exception in OnDestroy: " + ex.Message, Logger.LogCategory.Character);
+            }
+            finally
+            {
                 _cancellationTokenSource?.Dispose();
-            }
-            catch (ObjectDisposedException ex)
-            {
-                // Handle the ObjectDisposedException, which can occur if the CancellationTokenSource is already disposed. 
-                Logger.Warn("ObjectDisposedException in OnDestroy: " + ex.Message, Logger.LogCategory.Character);
-            }
-
-            _cancellationTokenSource = null;
-        }
-
-        private void OnApplicationQuit()
-        {
-            // Cancel any ongoing tasks
-            if (_cancellationTokenSource != null)
-            {
-                _cancellationTokenSource.Cancel();
-                _cancellationTokenSource.Dispose();
+                _cancellationTokenSource = null;
+                Logger.Info("The Cancellation Token Source was Disposed in OnDestroy.", Logger.LogCategory.Character);
             }
         }
 
@@ -186,7 +179,7 @@ namespace Convai.Scripts.Utils
             }
             catch (Exception ex)
             {
-                Logger.Exception(ex, Logger.LogCategory.Actions);
+                Logger.Exception(ex, Logger.LogCategory.Character);
             }
 
             return null;
@@ -253,6 +246,28 @@ namespace Convai.Scripts.Utils
         // This method will be called whenever the active NPC changes.
         private void HandleActiveNPCChanged(ConvaiNPC newActiveNPC)
         {
+            if (newActiveNPC == null)
+            {
+                // Cancel the ongoing gRPC call
+                try
+                {
+                    _cancellationTokenSource?.Cancel();
+                }
+                catch (Exception e)
+                {
+                    // Handle the Exception, which can occur if the CancellationTokenSource is already disposed. 
+                    Logger.Warn("Exception in GRPCAPI:HandleActiveNPCChanged: " + e.Message, Logger.LogCategory.Character);
+                }
+                finally
+                {
+                    _cancellationTokenSource?.Dispose();
+                    _cancellationTokenSource = null;
+                    Logger.Info("The Cancellation Token Source was Disposed in GRPCAPI:HandleActiveNPCChanged", Logger.LogCategory.Character);
+                }
+
+                _cancellationTokenSource = new CancellationTokenSource(); // Create a new token for future calls
+            }
+
             _activeConvaiNPC = newActiveNPC;
         }
 
@@ -378,7 +393,6 @@ namespace Convai.Scripts.Utils
                 return; // early return on error
             }
 
-            InterruptCharacterSpeech();
             AudioClip audioClip = Microphone.Start(MicrophoneManager.Instance.GetSelectedMicrophoneDevice(),
                 false, recordingLength, recordingFrequency);
 
@@ -396,7 +410,8 @@ namespace Convai.Scripts.Utils
             Metadata headers = new()
             {
                 { "source", "Unity" },
-                { "version", "2.1.0-nightly" }
+                { "version", "2.1.0" }
+
             };
 
             CallOptions options = new(headers);
@@ -475,6 +490,27 @@ namespace Convai.Scripts.Utils
 
                 if (diff > 0)
                 {
+                    if (audioClip == null)
+                    {
+                        try
+                        {
+                            _cancellationTokenSource?.Cancel();
+                        }
+                        catch (Exception e)
+                        {
+                            // Handle the Exception, which can occur if the CancellationTokenSource is already disposed. 
+                            Logger.Warn("Exception when Audio Clip is null: " + e.Message, Logger.LogCategory.Character);
+                        }
+                        finally
+                        {
+                            _cancellationTokenSource?.Dispose();
+                            _cancellationTokenSource = null;
+                            Logger.Info("The Cancellation Token Source was Disposed because the Audio Clip was empty.", Logger.LogCategory.Character);
+                        }
+
+                        break;
+                    }
+
                     audioClip.GetData(audioData, pos);
                     await ProcessAudioChunk(call, diff, audioData);
                     pos = newPos;
@@ -485,6 +521,7 @@ namespace Convai.Scripts.Utils
             await ProcessAudioChunk(call,
                 Microphone.GetPosition(MicrophoneManager.Instance.GetSelectedMicrophoneDevice()) - pos,
                 audioData).ConfigureAwait(false);
+
             await call.RequestStream.CompleteAsync();
         }
 
@@ -549,6 +586,10 @@ namespace Convai.Scripts.Utils
                     else
                         throw;
                 }
+                catch (Exception ex)
+                {
+                    Logger.Error(ex, Logger.LogCategory.Character);
+                }
             }
         }
 
@@ -556,14 +597,29 @@ namespace Convai.Scripts.Utils
 
         /// <summary>
         /// </summary>
-        private void InterruptCharacterSpeech()
+        public void InterruptCharacterSpeech()
         {
             // If the active NPC is speaking, cancel the ongoing gRPC call,
             // clear the response queue, and reset the character's speaking state, lip-sync, animation, and audio playback
             if (_activeConvaiNPC != null && _activeConvaiNPC.IsCharacterTalking)
             {
                 // Cancel the ongoing gRPC call
-                _cancellationTokenSource.Cancel();
+                try
+                {
+                    _cancellationTokenSource?.Cancel();
+                }
+                catch (Exception e)
+                {
+                    // Handle the Exception, which can occur if the CancellationTokenSource is already disposed. 
+                    Logger.Warn("Exception in Interrupt Character Speech: " + e.Message, Logger.LogCategory.Character);
+                }
+                finally
+                {
+                    _cancellationTokenSource?.Dispose();
+                    _cancellationTokenSource = null;
+                    Logger.Info("The Cancellation Token Source was Disposed in Interrupt Character Speech.", Logger.LogCategory.Character);
+                }
+
                 _cancellationTokenSource = new CancellationTokenSource(); // Create a new token for future calls
 
                 CharacterInterrupted?.Invoke();
@@ -652,6 +708,10 @@ namespace Convai.Scripts.Utils
                         Logger.Error(rpcException, Logger.LogCategory.Character);
                     else
                         throw;
+                }
+                catch (Exception ex)
+                {
+                    Logger.DebugLog(ex, Logger.LogCategory.Character);
                 }
 
             if (cancellationToken.IsCancellationRequested) await call.RequestStream.CompleteAsync();
