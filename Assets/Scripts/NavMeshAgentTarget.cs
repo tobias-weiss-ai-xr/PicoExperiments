@@ -49,7 +49,7 @@ public class NavMeshAgentTarget : MonoBehaviour
 
     private void CheckEyeTrackingForProductHit(Vector3 origin, Vector3 direction, RaycastHit hit)
     {
-        if (hit.transform.name == null)
+        if (hit.transform == null || hit.transform.name == null)
         {
             if (DebugLog) Debug.Log("No ET hit found");
             return; // Do nothing if no transform
