@@ -9,7 +9,7 @@ public class Main : DSingleton<Main>
 {
     private Dictionary<int, string> avatar_id_dic = new Dictionary<int, string>();
     private bool menuIsDone;
-    private bool adaptiveAgent;
+    public bool AdaptiveAgent;
     public static bool XrKeydownIndexBool = true;
 
     public List<Vector3> EyeTrackingDirectionAdjustments;
@@ -26,10 +26,14 @@ public class Main : DSingleton<Main>
     protected override void Awake()
     {
         base.Awake();
-        Toggle t = GameObject.Find("AdaptiveAgentToggle").GetComponent<Toggle>();
-        t.onValueChanged.AddListener((val) => adaptiveAgent = val);
+        string currentSceneName = SceneManager.GetActiveScene().name;
+        if (currentSceneName == "00_Menu")
+        {
+            Toggle t = GameObject.Find("AdaptiveAgentToggle").GetComponent<Toggle>();
+            AdaptiveAgent = true;
+            t.onValueChanged.AddListener((val) => AdaptiveAgent = val);
+        }
     }
-
 
     void Update()
     {

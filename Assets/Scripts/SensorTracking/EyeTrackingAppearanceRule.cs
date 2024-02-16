@@ -29,7 +29,7 @@ public class EyeTrackingAppearanceRule : MonoBehaviour
         bool anyFalse = PrinterDict.Any(KeyValuePair => !KeyValuePair.Value);
         if (!anyFalse)
         {
-            StartCoroutine(GetComponent<NavMeshAgentTarget>().MoveToConsumer(0f));
+            GetComponent<NavMeshAgentTarget>().MoveToConsumer();
         }
     }
 }

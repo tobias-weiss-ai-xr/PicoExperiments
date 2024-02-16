@@ -24,7 +24,7 @@ public class EyeTrackingLogging : MonoBehaviour
     {
         EyeTrackingManager et = GetComponent<EyeTrackingManager>();
         StartLogging();
-        // et.OnEyeTrackingEvent += EyeRay_OnEyeTrackingEvent;
+        et.OnEyeTrackingEvent += EyeRay_OnEyeTrackingEvent;
 
     }
     private void EyeRay_OnEyeTrackingEvent(Vector3 origin, Vector3 direction, RaycastHit hit)

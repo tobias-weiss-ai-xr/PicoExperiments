@@ -1,19 +1,26 @@
 using System.Collections;
 using System.Collections.Generic;
 using NUnit.Framework;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.TestTools;
 using UnityEngine.UIElements;
 
 public class ShowroomTestScript
 {
-    // A Test behaves as an ordinary method
+    [SetUp]
+    public void Setup()
+    {
+        EditorSceneManager.OpenScene("Assets\\Scenes\\Showroom.unity");
+    }
     [Test]
-    public void BasicObjectExistenceTest()
+    public void VerifyScene()
     {
         Assert.IsTrue(GameObject.Find("Realtime Instance").transform != null);
         Assert.IsTrue(GameObject.Find("doors 1 agent").transform != null);
         // Assert.IsTrue(GameObject.Find("FTManager").GetComponent<FileWriter>() != null);
+        var gameObject = GameObject.Find("EyeTracking");
+        Assert.That(gameObject, Is.Not.Null);
     }
 
     [Test]
@@ -22,13 +29,9 @@ public class ShowroomTestScript
         Assert.IsTrue(GameObject.Find("XR Origin").GetComponent<BoxCollider>() != null);
     }
 
-    // A UnityTest behaves like a coroutine in Play Mode. In Edit Mode you can use
-    // `yield return null;` to skip a frame.
-    [UnityTest]
-    public IEnumerator NewTestScriptWithEnumeratorPasses()
+    [TearDown]
+    public void Teardown()
     {
-        // Use the Assert class to test conditions.
-        // Use yield to skip a frame.
-        yield return null;
+        EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
     }
 }

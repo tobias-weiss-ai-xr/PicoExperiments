@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 using Normal.Realtime;
+using System.Linq;
 
 public class SpawnObject : MonoBehaviour
 {
@@ -21,7 +22,12 @@ public class SpawnObject : MonoBehaviour
     void SpawnWithDelay()
     {
         if (spawnPoint == null)
-            spawnPoint = GameObject.Find("Spawn");
+        {
+            var name = "Spawn";
+            var allKids = GetComponentsInChildren<Transform>();
+            spawnPoint = allKids.Where(k => k.gameObject.name == name).FirstOrDefault().gameObject;
+
+        }
 
         Realtime.InstantiateOptions options = new Realtime.InstantiateOptions();
         options.ownedByClient = true;

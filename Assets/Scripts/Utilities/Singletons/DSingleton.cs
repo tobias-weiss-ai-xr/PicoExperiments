@@ -1,8 +1,7 @@
 using UnityEngine;
 
     /// <summary>
-    /// D singleton.模板，可直接继承此模板
-    /// 切换各个Scene中仍然存在的模板，保持第一次创建此单例模板类的唯一性。
+    /// D singleton
     /// </summary>
     public class DSingleton<T> : MonoBehaviour	where T : Component
 	{

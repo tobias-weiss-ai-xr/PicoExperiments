@@ -10,8 +10,6 @@ public class WelcomeConsumer : MonoBehaviour
 {
 
     ConvaiNPC agent;
-    ConvaiChatUIHandler chat;
-    IChatUI chatbox;
     private bool startConverstationGuard = false;
     // Start is called before the first frame update
     void Start()
