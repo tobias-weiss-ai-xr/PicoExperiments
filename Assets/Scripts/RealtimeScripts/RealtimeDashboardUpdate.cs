@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class RealtimeDashboardUpdate : MonoBehaviour
 {
-    private EyeTracking eyeTracking = null;
+    private EyeTrackingManager eyeTracking = null;
     private RealtimeDashboard dashboardModel = null;
     private float valueAriel = 0f;
     private float valueKuschelweich = 0f;
@@ -13,7 +13,7 @@ public class RealtimeDashboardUpdate : MonoBehaviour
 
     void Start()
     {
-        eyeTracking = GetComponent<EyeTracking>();
+        eyeTracking = GetComponent<EyeTrackingManager>();
         dashboardModel = GameObject.Find("Dashboard").GetComponent<RealtimeDashboard>();
         // eyeTracking.OnGazeRecordProcessing += AnalyzeGazeRecord;
     }

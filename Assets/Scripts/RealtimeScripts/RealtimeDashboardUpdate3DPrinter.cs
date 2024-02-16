@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class RealtimeDashboardUpdate3DPrinter : MonoBehaviour
 {
-    private EyeTracking eyeTracking = null;
+    private EyeTrackingManager eyeTracking = null;
     private RealtimeDashboard3DPrinter dashboardModel = null;
     private float valueExplorer = 0f;
     private float valueSolid = 0f;
@@ -13,7 +13,7 @@ public class RealtimeDashboardUpdate3DPrinter : MonoBehaviour
 
     void Start()
     {
-        eyeTracking = GetComponent<EyeTracking>();
+        eyeTracking = GetComponent<EyeTrackingManager>();
         dashboardModel = GameObject.Find("Dashboard").GetComponent<RealtimeDashboard3DPrinter>();
         // eyeTracking.OnGazeRecordProcessing += AnalyzeGazeRecord;
     }

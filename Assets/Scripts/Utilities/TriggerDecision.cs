@@ -15,7 +15,7 @@ public class TriggerDecision : MonoBehaviour
         // Needs to be done in awake because cart and products are disabled in start
         purchaseDone = false;
 
-        purchaseConfirmation = GameObject.Find("Bought item");
+        purchaseConfirmation = GameObject.Find("Bought item panel");
         purchaseConfirmation.SetActive(false);
 
         cartBottomCollider = GameObject.Find("Cart").GetComponent<BoxCollider>();
@@ -38,9 +38,10 @@ public class TriggerDecision : MonoBehaviour
     }
     private void Log(GameObject product)
     {
-        purchaseConfirmation.SetActive(true);
         string msg = $"Model purchased: {product.name}";
-        purchaseConfirmation.GetComponent<TextMeshProUGUI>().text = msg; Debug.Log(msg);
+        Debug.Log(msg);
+        purchaseConfirmation.GetComponentInChildren<TextMeshProUGUI>().text = msg;
+        purchaseConfirmation.SetActive(true);
         purchaseDone = true;
     }
 }

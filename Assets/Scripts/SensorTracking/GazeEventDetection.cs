@@ -8,7 +8,7 @@ using UnityEngine.SceneManagement;
 public class GazeEventDetection : MonoBehaviour
 {
     // Eye-tracking
-    private EyeTracking _eyeTracking = null;
+    private EyeTrackingManager _eyeTracking = null;
     private Queue<GazeRecord> _gazeRecordQueue = new();
 
     private float _minBlinkDurationThreshold = 0.01f; // 10ms blink minimum (2 invalid observations at 200 Hz)
@@ -106,7 +106,7 @@ public class GazeEventDetection : MonoBehaviour
 
     private void Start()
     {
-        if (TryGetComponent<EyeTracking>(out _eyeTracking))
+        if (TryGetComponent<EyeTrackingManager>(out _eyeTracking))
         {
             // _eyeTracking.OnGazeRecordProcessing += QueueGazeRecord;
             StartLogging();

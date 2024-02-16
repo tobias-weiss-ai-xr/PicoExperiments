@@ -18,8 +18,8 @@ public class EyeTrackingAppearanceRule : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        EyeTracking et = GameObject.Find("EyeTracking").GetComponent<EyeTracking>();
-        et.OnEyeTrackingEvent += ProcessAppearanceRule;
+        EyeTrackingManager et = GameObject.Find("EyeTracking").GetComponent<EyeTrackingManager>();
+        // et.OnEyeTrackingEvent += ProcessAppearanceRule;
     }
 
     private void ProcessAppearanceRule(Vector3 origin, Vector3 direction, RaycastHit hit)

@@ -8,7 +8,7 @@ public class EyeTrackingInfo : MonoBehaviour
     void Start()
     {
         if (headerText == null) headerText = GameObject.Find("Gaze Info Header Text").GetComponent<Text>();
-        EyeTracking et = GameObject.Find("EyeTracking").GetComponent<EyeTracking>();
+        EyeTrackingManager et = GameObject.Find("EyeTracking").GetComponent<EyeTrackingManager>();
         et.OnEyeTrackingEvent += SetInfoText;
     }
 

@@ -56,7 +56,7 @@ public class Savefile : MonoBehaviour
         this.EnsureObjectReference(ref gazeEventClassifier, "GazeEventClassifier");
         Load();
         SelectComponents();
-        
+
     }
 
     public void Save()
@@ -97,13 +97,13 @@ public class Savefile : MonoBehaviour
         thirdpersonOriginRobot.SetActive(false);
         thirdpersonOriginTobias.SetActive(false);
         xrOrigin.SetActive(false);
-        xrOrigin.GetComponent<EyeTracking>().enabled = false;
+        xrOrigin.GetComponent<EyeTrackingManager>().enabled = false;
         xrOrigin.GetComponent<GazeEventDetection>().enabled = false;
         // xrOrigin.GetComponent<RealtimeDashboardUpdate3DPrinter>().enabled = false;
         // xrInteractionManager.GetComponent<RuntimeXRLoaderManager>().enabled = false;
         // optitrackManager.GetComponent<OptitrackStreamingClient>().enabled = false;
         RealtimeAvatarManager.SetActive(false);
-        if(avatarInput != AvatarInput.THIRDPERSON && avatarModel != AvatarLooks.BUSINESSMAN && avatarModel != AvatarLooks.MUSTAFA && avatarModel != AvatarLooks.LILY)
+        if (avatarInput != AvatarInput.THIRDPERSON && avatarModel != AvatarLooks.BUSINESSMAN && avatarModel != AvatarLooks.MUSTAFA && avatarModel != AvatarLooks.LILY)
         {
             Debug.LogWarning("Invalid input/model combination. Switching model to businessman.");
             avatarModel = AvatarLooks.BUSINESSMAN;
@@ -160,7 +160,7 @@ public class Savefile : MonoBehaviour
                 if (avatarInput == AvatarInput.THIRDPERSON)
                 {
                     thirdpersonOrigin.SetActive(true);
-                }             
+                }
                 //Optitrack Handled in previous switch
                 break;
             case AvatarLooks.ASMUS:
