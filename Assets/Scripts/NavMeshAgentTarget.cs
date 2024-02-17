@@ -12,7 +12,7 @@ public class NavMeshAgentTarget : MonoBehaviour
     public bool AdaptiveAgent = false;
     [SerializeField]
     private Transform movePositionTransform;
-    [SerializeField] private float motionSpeed = 0.9f;
+    [SerializeField] private float motionSpeed = 1f;
     private NavMeshAgent navMeshAgent;
     private Animator animator;
     private EyeTrackingManager et;
@@ -28,15 +28,17 @@ public class NavMeshAgentTarget : MonoBehaviour
     public bool DebugLog = true;
     private bool startedMoving = false;
 
-    void Start()
+    void Awake()
     {
         AdaptiveAgent = GameObject.Find("Main").GetComponent<Main>().AdaptiveAgent;
         if (DebugLog) print("AdaptiveAgent: " + AdaptiveAgent);
-        et = GameObject.Find("EyeTracking").GetComponent<EyeTrackingManager>();
         doors = GameObject.Find("doors 1 agent");
+    }
+    void Start()
+    {
+        et = GameObject.Find("EyeTracking").GetComponent<EyeTrackingManager>();
         navMeshAgent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
-        animator.SetFloat("MotionSpeed", motionSpeed);
         if (!AdaptiveAgent)
         {
             MoveToConsumer();
@@ -76,14 +78,14 @@ public class NavMeshAgentTarget : MonoBehaviour
             startedMoving = true;
             if (DebugLog) Debug.Log("Moving to customer");
             movePositionTransform = GameObject.Find("XR Origin").transform;
-            navMeshAgent.SetDestination(movePositionTransform.position);
             animator.SetFloat("Speed", navMeshAgent.velocity.magnitude);
             doors.SetActive(false); // Todo: Use a nice animation...
         }
         et.OnEyeTrackingEvent -= CheckEyeTrackingForProductHit;
     }
-
     void Update()
     {
+        navMeshAgent.destination = movePositionTransform.position;
+        animator.SetFloat("Speed", navMeshAgent.velocity.magnitude);
     }
 }
