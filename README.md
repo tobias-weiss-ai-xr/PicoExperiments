@@ -3,7 +3,8 @@
 This is a skeleton for experiments using the Pico 4 Enterprise HMD.
 
 It contains following demos:
-- Monty Python Game
+- Monty Hall Game
+- AI sales avatar for 3D printers
 - Car showroom
 - Cybersickness questionnaire
 - Supermarket
