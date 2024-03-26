@@ -17,16 +17,18 @@ public class NavMeshAgentTarget : MonoBehaviour
     private Animator animator;
     private EyeTrackingManager et;
     private GameObject doors;
-    Dictionary<string, bool> productEtStatus = new Dictionary<string, bool>
+    Dictionary<string, float> productEtStatus = new Dictionary<string, float>
     {
-        {"explorer", false},
-        {"solid", false},
-        {"plus", false},
-        {"pro", false},
+        {"explorer", 0f},
+        {"solid", 0f},
+        {"plus", 0f},
+        {"pro", 0f},
     };
 
     public bool DebugLog = true;
     private bool startedMoving = false;
+
+    public float DurationTheshold = 10f;
 
     void Awake()
     {
@@ -38,6 +40,7 @@ public class NavMeshAgentTarget : MonoBehaviour
     {
         et = GameObject.Find("EyeTracking").GetComponent<EyeTrackingManager>();
         navMeshAgent = GetComponent<NavMeshAgent>();
+        movePositionTransform = GameObject.Find("MoveTarget").transform;
         animator = GetComponent<Animator>();
         if (!AdaptiveAgent)
         {
@@ -62,13 +65,18 @@ public class NavMeshAgentTarget : MonoBehaviour
         if (productEtStatus.ContainsKey(gazeTargetTag))
         {
             if (DebugLog) Debug.Log("Product hit: " + gazeTargetTag);
-            productEtStatus[gazeTargetTag] = true;
+            productEtStatus[gazeTargetTag] += (1 / 24f);
+            if (DebugLog) Debug.Log(gazeTargetTag + " " + productEtStatus[gazeTargetTag].ToString());
         }
 
-        // Check if all Products hit
-        bool allProductsHit = productEtStatus.Values.All(product => product == true);
+        // Check if all products were hit
+        bool allProductsHit = productEtStatus.Values.All(duration => duration > DurationTheshold);
         if (DebugLog) Debug.Log("All products hit: " + allProductsHit.ToString());
-        if (allProductsHit) MoveToConsumer();
+        if (allProductsHit)
+        {
+            MoveToConsumer();
+            et.OnEyeTrackingEvent -= CheckEyeTrackingForProductHit;
+        }
     }
 
     public void MoveToConsumer()
@@ -79,7 +87,7 @@ public class NavMeshAgentTarget : MonoBehaviour
             if (DebugLog) Debug.Log("Moving to customer");
             movePositionTransform = GameObject.Find("XR Origin").transform;
             animator.SetFloat("Speed", navMeshAgent.velocity.magnitude);
-            doors.SetActive(false); // Todo: Use a nice animation...
+            doors.SetActive(false); // Todo: Use a nice animation to open the door
         }
         et.OnEyeTrackingEvent -= CheckEyeTrackingForProductHit;
     }

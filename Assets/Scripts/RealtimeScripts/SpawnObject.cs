@@ -7,9 +7,9 @@ using System.Linq;
 
 public class SpawnObject : MonoBehaviour
 {
-    public string spawnObjectName;
+    // public string spawnObjectName;
     public GameObject spawnPoint;
-    private GameObject spawnObject;
+    public GameObject spawnObject;
     public int delay = 3;
     private RealtimeTransform realtimeTransform;
     private RealtimeView spawnObjectView;
@@ -29,6 +29,8 @@ public class SpawnObject : MonoBehaviour
 
         }
 
+        /* obsolete networking code
+          
         Realtime.InstantiateOptions options = new Realtime.InstantiateOptions();
         options.ownedByClient = true;
         spawnObject = Realtime.Instantiate(spawnObjectName, options);
@@ -42,6 +44,9 @@ public class SpawnObject : MonoBehaviour
         transform.SetParent(spawnPoint.transform);
         realtimeTransform.transform.SetPositionAndRotation(spawnPoint.transform.position, spawnPoint.transform.rotation);
         //realtimeTransform.ClearOwnership();
+        */
+
+        Instantiate(spawnObject, spawnPoint.transform);
 
         Debug.Log($"Object {spawnObject.name} activated.");
     }

@@ -1,10 +1,7 @@
-using System;
 using System.Collections;
-using System.Collections.Generic;
 using Convai.Scripts;
 using Convai.Scripts.Utils;
 using UnityEngine;
-using UnityEngine.UIElements;
 
 public class WelcomeConsumer : MonoBehaviour
 {
@@ -28,6 +25,6 @@ public class WelcomeConsumer : MonoBehaviour
     private IEnumerator StartConversation()
     {
         yield return new WaitForSeconds(1f);
-        agent.HandleInputSubmission("Begrüße den Benutzenden mit den Worten: Herzlich Willkommen. Kann ich Ihnen bei der Auswahl eines Druckers helfen?");
+        agent.HandleInputSubmission("Begrüße den Benutzenden exakt mit den Worten: Herzlich Willkommen. Kann ich Ihnen bei der Auswahl eines Druckers helfen?");
     }
 }
