@@ -44,14 +44,12 @@ public class EyeTrackingManager : MonoBehaviour
         combineEyeGazeVector = Vector3.zero;
         combineEyeGazeOrigin = Vector3.zero;
         originPoseMatrix = Origin.localToWorldMatrix;
-#if Unity_ANDROID
         trackingState = (TrackingStateCode)PXR_MotionTracking.WantEyeTrackingService();
         // Query if the current device supports eye tracking
         EyeTrackingMode eyeTrackingMode = EyeTrackingMode.PXR_ETM_NONE;
         int supportedModesCount = 0;
         trackingState = (TrackingStateCode)PXR_MotionTracking.GetEyeTrackingSupported(ref supported, ref supportedModesCount, ref eyeTrackingMode);
         StartCoroutine(EyeTracking(1 / 24f));  // 1/24=0.04 sec.=24FPS (everything else leads to instabilities!)
-#endif
     }
 
     IEnumerator EyeTracking(float stepTime)

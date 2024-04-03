@@ -32,9 +32,14 @@ public class NavMeshAgentTarget : MonoBehaviour
 
     void Awake()
     {
-        AdaptiveAgent = GameObject.Find("Main").GetComponent<Main>().AdaptiveAgent;
-        if (DebugLog) print("AdaptiveAgent: " + AdaptiveAgent);
-        doors = GameObject.Find("doors 1 agent");
+        Main main = null;
+        GameObject.Find("Main").TryGetComponent<Main>(out main);
+        if (main != null)
+        {
+            AdaptiveAgent = main.AdaptiveAgent;
+            if (DebugLog) print("AdaptiveAgent: " + AdaptiveAgent);
+            doors = GameObject.Find("doors 1 agent");
+        }
     }
     void Start()
     {
