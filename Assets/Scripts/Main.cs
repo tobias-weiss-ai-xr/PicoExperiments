@@ -29,21 +29,31 @@ public class Main : DSingleton<Main>
         string currentSceneName = SceneManager.GetActiveScene().name;
         if (currentSceneName == "00_Menu")
         {
-            AdaptiveAgent = Random.value > 0.5f;
-            string filePath = Application.persistentDataPath + "/agent-status.txt";
-            string dt = System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-            using (StreamWriter writer = File.AppendText(filePath))
-            {
-                writer.WriteLine(dt + " Adaptive agent: " + AdaptiveAgent.ToString());
-            }
+            // AdaptiveAgent = Random.value > 0.5f;
+            Toggle t = GameObject.Find("AdaptiveAgentToggle").GetComponent<Toggle>();
+            AdaptiveAgent = false;
+            t.onValueChanged.AddListener((val) => AdaptiveAgent = val);
+            t.onValueChanged.AddListener(LogAiAgentMode);
         }
         else if (currentSceneName == "00_Menu_full")
         {
             Toggle t = GameObject.Find("AdaptiveAgentToggle").GetComponent<Toggle>();
-            AdaptiveAgent = true;
+            AdaptiveAgent = false;
             t.onValueChanged.AddListener((val) => AdaptiveAgent = val);
         }
     }
+
+    void LogAiAgentMode(bool mode)
+    {
+            string filePath = Application.persistentDataPath + "/agent-status.txt";
+            string dt = System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+            Debug.Log(dt + " Adaptive agent: " + AdaptiveAgent.ToString());
+            using (StreamWriter writer = File.AppendText(filePath))
+            {
+                writer.WriteLine(dt + " Adaptive agent: " + AdaptiveAgent.ToString());
+            }
+    }
+
     void Update()
     {
         //Long Press Menu Button

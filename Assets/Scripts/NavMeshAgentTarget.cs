@@ -4,8 +4,10 @@ using System.Collections.Generic;
 using System.Linq;
 using Convai.Scripts;
 using Convai.Scripts.Utils;
+using TMPro;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.SceneManagement;
 
 public class NavMeshAgentTarget : MonoBehaviour
 {
@@ -32,13 +34,15 @@ public class NavMeshAgentTarget : MonoBehaviour
 
     void Awake()
     {
-        Main main = null;
-        GameObject.Find("Main").TryGetComponent<Main>(out main);
-        if (main != null)
+        if (GameObject.Find("Main") != null)
         {
-            AdaptiveAgent = main.AdaptiveAgent;
-            if (DebugLog) print("AdaptiveAgent: " + AdaptiveAgent);
-            doors = GameObject.Find("doors 1 agent");
+            GameObject.Find("Main").TryGetComponent<Main>(out Main main);
+            if (main)
+            {
+                AdaptiveAgent = main.AdaptiveAgent;
+                if (DebugLog) print("AdaptiveAgent: " + AdaptiveAgent);
+                doors = GameObject.Find("doors 1 agent");
+            }
         }
     }
     void Start()
@@ -47,13 +51,20 @@ public class NavMeshAgentTarget : MonoBehaviour
         navMeshAgent = GetComponent<NavMeshAgent>();
         movePositionTransform = GameObject.Find("MoveTarget").transform;
         animator = GetComponent<Animator>();
-        if (!AdaptiveAgent)
+        if (SceneManager.GetActiveScene().name == "Preparation")
         {
-            MoveToConsumer();
+            MoveToStaticTarget();
+            
         }
-        else
-        {
-            et.OnEyeTrackingEvent += CheckEyeTrackingForProductHit;
+        else { 
+            if (!AdaptiveAgent)
+            {
+                MoveToConsumer();
+            }
+            else
+            {
+                et.OnEyeTrackingEvent += CheckEyeTrackingForProductHit;
+            }
         }
     }
 
@@ -83,6 +94,14 @@ public class NavMeshAgentTarget : MonoBehaviour
             et.OnEyeTrackingEvent -= CheckEyeTrackingForProductHit;
         }
     }
+    public void MoveToStaticTarget()
+    {
+        if (startedMoving)
+            return;
+        startedMoving = true;
+        if (DebugLog) Debug.Log("Moving to static target");
+        animator.SetFloat("Speed", navMeshAgent.velocity.magnitude);
+    }
 
     public void MoveToConsumer()
     {
@@ -92,7 +111,11 @@ public class NavMeshAgentTarget : MonoBehaviour
             if (DebugLog) Debug.Log("Moving to customer");
             movePositionTransform = GameObject.Find("XR Origin").transform;
             animator.SetFloat("Speed", navMeshAgent.velocity.magnitude);
-            doors.SetActive(false); // Todo: Use a nice animation to open the door
+            if(doors!=null)
+            {
+                doors.SetActive(false); // Todo: Use a nice animation to open the door
+            }
+            GameObject.Find("DoorClientInfo").GetComponent<TMP_Text>().text = "Remember to press the trigger\n to ask questions!";
         }
         et.OnEyeTrackingEvent -= CheckEyeTrackingForProductHit;
     }
