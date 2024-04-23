@@ -45,13 +45,13 @@ public class Main : DSingleton<Main>
 
     void LogAiAgentMode(bool mode)
     {
-            string filePath = Application.persistentDataPath + "/agent-status.txt";
-            string dt = System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-            Debug.Log(dt + " Adaptive agent: " + AdaptiveAgent.ToString());
-            using (StreamWriter writer = File.AppendText(filePath))
-            {
-                writer.WriteLine(dt + " Adaptive agent: " + AdaptiveAgent.ToString());
-            }
+        string filePath = Application.persistentDataPath + "/agent-status.txt";
+        string dt = System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+        Debug.Log(dt + " Adaptive agent: " + AdaptiveAgent.ToString());
+        using (StreamWriter writer = File.AppendText(filePath))
+        {
+            writer.WriteLine(dt + " Adaptive agent: " + AdaptiveAgent.ToString());
+        }
     }
 
     void Update()

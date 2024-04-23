@@ -31,6 +31,9 @@ public class NavMeshAgentTarget : MonoBehaviour
     private bool startedMoving = false;
 
     public float DurationTheshold = 10f;
+    public float MinDuration = 30f;
+    public float MaxDuration = 30f;
+    float duration = 0f;
 
     void Awake()
     {
@@ -121,6 +124,7 @@ public class NavMeshAgentTarget : MonoBehaviour
     }
     void Update()
     {
+        duration += Time.deltaTime; // Update timer
         navMeshAgent.destination = movePositionTransform.position;
         animator.SetFloat("Speed", navMeshAgent.velocity.magnitude);
     }

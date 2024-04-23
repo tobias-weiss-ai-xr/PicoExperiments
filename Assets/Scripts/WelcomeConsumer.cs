@@ -25,6 +25,8 @@ public class WelcomeConsumer : MonoBehaviour
     private IEnumerator StartConversation()
     {
         yield return new WaitForSeconds(1f);
-        agent.HandleInputSubmission("Begrüße den Benutzenden exakt mit den Worten: Herzlich Willkommen. Kann ich Ihnen bei der Auswahl eines Druckers helfen?");
+        agent.HandleInputSubmission("Begrüße den Benutzenden exakt mit den Worten:" + 
+                                    "Hallo, ich bin ihr KI-gesteuerter Assistent. Sie können mir gerne Fragen zu den Produkten und ihrer Nutzung stellen. Ich kann für Sie ein Beispielprodukt drucken und bin Ihnen außerdem gerne beim Abschluss des Einkaufs behilflich."
+                                    );
     }
 }
