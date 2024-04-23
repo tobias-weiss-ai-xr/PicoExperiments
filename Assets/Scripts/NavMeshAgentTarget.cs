@@ -32,7 +32,7 @@ public class NavMeshAgentTarget : MonoBehaviour
 
     public float DurationTheshold = 10f;
     public float MinDuration = 30f;
-    public float MaxDuration = 30f;
+    public float MaxDuration = 120f;
     float duration = 0f;
 
     void Awake()
