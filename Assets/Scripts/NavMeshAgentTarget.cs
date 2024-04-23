@@ -88,10 +88,10 @@ public class NavMeshAgentTarget : MonoBehaviour
             if (DebugLog) Debug.Log(gazeTargetTag + " " + productEtStatus[gazeTargetTag].ToString());
         }
 
-        // Check if all products were hit
+        // Check if rules are met
         bool allProductsHit = productEtStatus.Values.All(duration => duration > DurationTheshold);
         if (DebugLog) Debug.Log("All products hit: " + allProductsHit.ToString());
-        if (allProductsHit)
+        if (duration > MaxDuration || (allProductsHit && duration > MinDuration))
         {
             MoveToConsumer();
             et.OnEyeTrackingEvent -= CheckEyeTrackingForProductHit;
