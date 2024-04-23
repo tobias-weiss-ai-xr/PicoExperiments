@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Service;
 using UnityEngine;
 using UnityEngine.Serialization;
@@ -16,7 +17,9 @@ namespace Convai.Scripts.Utils
         Crouch,
         MoveTo,
         PickUp,
-        Drop
+        Drop,
+        UsePrinter,
+        Checkout
     }
 
     /// <summary>
@@ -36,6 +39,7 @@ namespace Convai.Scripts.Utils
         private List<string> _actions = new();
         private ConvaiNPC _currentNPC;
         private ConvaiInteractablesData _interactablesData;
+        public bool MoveToParticipant;
 
         // Awake is called when the script instance is being loaded
         private void Awake()
@@ -112,6 +116,10 @@ namespace Convai.Scripts.Utils
 
             // Start playing the action list using a coroutine
             StartCoroutine(PlayActionList());
+            if (MoveToParticipant)
+            {
+                StartCoroutine(GoToParticipant());
+            }
         }
 
         private void Update()
@@ -133,8 +141,9 @@ namespace Convai.Scripts.Utils
             _actions = new List<string>(actionsString.Split(", "));
 
             // Iterate through each action in the list of actions
-            foreach (List<string> actionWords in _actions.Select(t => new List<string>(t.Split(" "))))
-                // Iterate through the words in the current action
+
+            foreach (List<string> actionWords in _actions.Select(t => new List<string>(t.Split(new char[] { ' ', ':', '\n' }))))
+            // Iterate through the words in the current action
             {
                 Logger.Info(
                     $"Processing action: {string.Join(" ", actionWords)}",
@@ -153,19 +162,21 @@ namespace Convai.Scripts.Utils
                     for (int k = 0; k < tempString1.Length; k++)
                         if (tempString1[k].EndsWith("s"))
                             tempString1[k] = tempString1[k].Remove(tempString1[k].Length - 1);
+                    string actionString = string.Join(" ", tempString1);
+                    //Remove all non-alphanumeric characters, so punctuation etc doesnt mess with the result
+                    Regex rgx = new Regex("[^a-zA-Z0-9 -]");
+                    actionString = rgx.Replace(actionString, "");
 
                     // Iterate through each defined Convai action
                     foreach (ActionMethod convaiAction in actionMethods)
                         // Check if the parsed verb matches any defined action
-                        if (string.Equals(convaiAction.action, string.Join(" ", tempString1),
-                                StringComparison.CurrentCultureIgnoreCase))
+                        if (convaiAction.action.AlmostEquals(string.Join(" ", actionString)))
                         {
                             GameObject tempGameObject = null;
 
                             // Iterate through each object in global action settings to find a match
                             foreach (ConvaiInteractablesData.Object @object in _interactablesData.Objects)
-                                if (string.Equals(@object.Name, string.Join(" ", tempString2),
-                                        StringComparison.CurrentCultureIgnoreCase))
+                                if (@object.Name.AlmostEquals(string.Join(" ", tempString2)))
                                 {
                                     Logger.DebugLog($"Active Target: {string.Join(" ", tempString2).ToLower()}",
                                         Logger.LogCategory.Actions);
@@ -174,8 +185,7 @@ namespace Convai.Scripts.Utils
 
                             // Iterate through each character in global action settings to find a match
                             foreach (ConvaiInteractablesData.Character character in _interactablesData.Characters)
-                                if (string.Equals(character.Name, string.Join(" ", tempString2),
-                                        StringComparison.CurrentCultureIgnoreCase))
+                                if (character.Name.AlmostEquals(string.Join(" ", tempString2)))
                                 {
                                     Logger.DebugLog($"Active Target: {string.Join(" ", tempString2).ToLower()}",
                                         Logger.LogCategory.Actions);
@@ -270,10 +280,17 @@ namespace Convai.Scripts.Utils
                     // Call the Jump function
                     Jump();
                     break;
+                case ActionChoice.Checkout:
+                    yield return Checkout();
+                    break;
 
                 case ActionChoice.Crouch:
                     // Call the Crouch function and yield until it's completed
                     yield return Crouch();
+                    break;
+                case ActionChoice.UsePrinter:
+                    // Call the UsePrinter function and yield until it's completed
+                    yield return UsePrinter();
                     break;
 
                 case ActionChoice.None:
@@ -286,6 +303,7 @@ namespace Convai.Scripts.Utils
             yield return null;
         }
 
+        
         /// <summary>
         ///     This method is a coroutine that handles playing an animation for Convai NPC.
         ///     The method takes in the name of the animation to be played as a string parameter.
@@ -435,7 +453,8 @@ namespace Convai.Scripts.Utils
         [Serializable]
         public class ActionMethod
         {
-            [FormerlySerializedAs("Action")] [SerializeField]
+            [FormerlySerializedAs("Action")]
+            [SerializeField]
             public string action;
 
             // feels unnecessary
@@ -461,6 +480,22 @@ namespace Convai.Scripts.Utils
         // STEP 3: Add the function for your action here.
 
         #region Action Implementation Methods
+
+        private IEnumerator UsePrinter()
+        {
+            ActionStarted?.Invoke("UsePrinter", null);
+            GameObject printerObject = GameObject.Find("Printer 3D WS Plus");
+            yield return StartCoroutine(MoveTo(printerObject));
+            SpawnObject printer = printerObject.GetComponent<SpawnObject>();
+            if (printer != null)
+            {
+                printer.SpawnRabbit();
+                printer.GetComponent<TriggerAnimation>().Run();
+            }
+            ActionEnded?.Invoke("UsePrinter", null);
+            yield return null;
+        }
+
 
         private IEnumerator Crouch()
         {
@@ -511,12 +546,13 @@ namespace Convai.Scripts.Utils
             // Log that we are starting the movement towards the target.
             Logger.DebugLog($"Moving to Target: {target.name}", Logger.LogCategory.Actions);
 
-            // Start the "Walking" animation.
+            // Start the "Walking" animation.         
             Animator animator = _currentNPC.GetComponent<Animator>();
-            animator.CrossFade(Animator.StringToHash("Walking"), 0.01f);
+             animator.CrossFade(Animator.StringToHash("Walking"), 0.01f);
+
 
             // Define move speed. This could also be a parameter or calculated dynamically if needed.
-            float moveSpeed = 0.6f;
+            float moveSpeed = 2f;
 
             // The stopping distance to the target, to avoid overshooting or getting too close.
             float stoppingDistance = 1.65f;
@@ -543,7 +579,7 @@ namespace Convai.Scripts.Utils
                     Time.deltaTime * 5f);
 
                 // Move the character towards the target position.
-                transform.position = Vector3.MoveTowards(transform.position, target.transform.position,
+                transform.position = Vector3.MoveTowards(transform.position, new Vector3(target.transform.position.x, 0,target.transform.position.z),
                     moveSpeed * Time.deltaTime);
 
                 // Yield until the next frame.
@@ -667,7 +703,30 @@ namespace Convai.Scripts.Utils
             ActionEnded?.Invoke("Jump", _currentNPC.gameObject);
         }
 
-        // STEP 3: Add the function for your action here.
+        private IEnumerator Checkout()
+        {
+            ActionStarted?.Invoke("Checkout", _currentNPC.gameObject);
+            GameObject doorwp = GameObject.Find("DoorWaypoint");
+            print(doorwp);
+            GameObject checkoutTable = GameObject.Find("CheckoutTable");
+            //Check if we are within three meters of checkout table. If so, assume we are already on the right side of the door.
+            if (Vector3.Distance(this.transform.position, checkoutTable.transform.position) > 3 && doorwp != null)
+            {
+                yield return MoveTo(doorwp);
+                yield return null; //Needed because animator blocks all but the first crossfade each frame.
+            }
+            yield return MoveTo(checkoutTable);
+            ActionEnded?.Invoke("Checkout", _currentNPC.gameObject);
+        }
+
+        private IEnumerator GoToParticipant()
+        {
+            GameObject doorwp = GameObject.Find("DoorWaypoint");
+            yield return MoveTo(doorwp);
+            yield return null; //Needed because animator blocks all but the first crossfade each frame.
+            yield return MoveTo(Camera.main.gameObject);
+        }
+
 
         #endregion
     }
