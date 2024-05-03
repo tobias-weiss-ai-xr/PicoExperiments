@@ -532,7 +532,7 @@ namespace Convai.Scripts.Utils
             ActionEnded?.Invoke("Crouch", _currentNPC.gameObject);
         }
 
-        private IEnumerator MoveTo(GameObject target)
+        public IEnumerator MoveTo(GameObject target)
         {
             ActionStarted?.Invoke("MoveTo", target);
             // If the target is null or not active, we don't want to move towards it.
@@ -552,7 +552,7 @@ namespace Convai.Scripts.Utils
 
 
             // Define move speed. This could also be a parameter or calculated dynamically if needed.
-            float moveSpeed = 2f;
+            float moveSpeed = 1.5f;
 
             // The stopping distance to the target, to avoid overshooting or getting too close.
             float stoppingDistance = 1.65f;
