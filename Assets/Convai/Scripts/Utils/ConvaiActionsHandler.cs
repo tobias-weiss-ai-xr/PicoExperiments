@@ -721,10 +721,13 @@ namespace Convai.Scripts.Utils
 
         private IEnumerator GoToParticipant()
         {
-            GameObject doorwp = GameObject.Find("DoorWaypoint");
-            yield return MoveTo(doorwp);
+            GameObject doorWp = GameObject.Find("DoorWaypoint");
+            GameObject welcomeWp = GameObject.Find("WelcomeWaypoint");
+            yield return MoveTo(doorWp);
             yield return null; //Needed because animator blocks all but the first crossfade each frame.
-            yield return MoveTo(Camera.main.gameObject);
+            yield return MoveTo(welcomeWp);
+            // yield return null; //Needed because animator blocks all but the first crossfade each frame.
+            // yield return MoveTo(Camera.main.gameObject);
         }
 
 

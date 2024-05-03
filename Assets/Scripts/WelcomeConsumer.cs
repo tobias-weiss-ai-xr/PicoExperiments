@@ -26,7 +26,9 @@ public class WelcomeConsumer : MonoBehaviour
     {
         yield return new WaitForSeconds(1f);
         agent.HandleInputSubmission("Begrüße den Benutzenden exakt mit den Worten:" + 
-                                    "Hallo, ich bin ihr KI-gesteuerter Assistent. Sie können mir gerne Fragen zu den Produkten und ihrer Nutzung stellen. Ich kann für Sie ein Beispielprodukt drucken und bin Ihnen außerdem gerne beim Abschluss des Einkaufs behilflich."
+                                    "Ich beantworte gerne alle Fragen zu den Druckern und helfe Ihnen bei der Entscheidung." + 
+                                    "Ich kann für Sie ein Beispielobjekt drucken und bin Ihnen gerne beim Abschluss des Einkaufs behilflich." +
+                                    "Drücken Sie den Abzug-Knopf mit dem Zeigefinger um mit mir zu sprechen." 
                                     );
     }
 }

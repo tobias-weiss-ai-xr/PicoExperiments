@@ -2,12 +2,15 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using TMPro;
 using System.IO;
+using Convai.Scripts;
+
 
 public class TriggerDecision : MonoBehaviour
 {
     private GameObject[] products;
     private GameObject text1, text2;
     private Collider cartBottomCollider;
+    private ConvaiNPC agent;
     bool purchaseDone;
 
     // Log a decision via collider intersection
@@ -19,6 +22,7 @@ public class TriggerDecision : MonoBehaviour
         text1 = GameObject.Find("text1");
         text2 = GameObject.Find("text2");
         text2.SetActive(false);
+        agent = GameObject.Find("Convai NPC Tobias").GetComponent<ConvaiNPC>();
 
         cartBottomCollider = GameObject.Find("Cart").GetComponentInChildren<BoxCollider>();
 
@@ -32,6 +36,14 @@ public class TriggerDecision : MonoBehaviour
             {
                 if (product.GetComponent<Collider>().bounds.Intersects(cartBottomCollider.bounds))
                 {
+                    text2.SetActive(true);
+                    text1.SetActive(false);
+                    agent.HandleInputSubmission("Verabschiede die Versuchsperson mit den exakten worten:" + 
+                                                "Vielen Dank für die Entscheidung." + 
+                                                "Das richtige Produkt war der WS 3D Plus." + 
+                                                "Nun geht es weiter mit dem Fragebogen."
+                                                );
+                    purchaseDone = true;
                     Log(product);
                 }
             }
@@ -51,8 +63,5 @@ public class TriggerDecision : MonoBehaviour
             writer.WriteLine(msg);
         }
 
-        text2.SetActive(true);
-        text1.SetActive(false);
-        purchaseDone = true;
     }
 }
