@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Service;
+using TMPro;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -41,6 +42,23 @@ namespace Convai.Scripts.Utils
         private ConvaiInteractablesData _interactablesData;
         public bool MoveToParticipant;
 
+        private GameObject doors;
+        public bool AdaptiveAgent = false;
+        private EyeTrackingManager et;
+        public bool DebugLog = true;
+        public bool startedMoving = false;
+        Dictionary<string, float> productEtStatus = new Dictionary<string, float>
+        {
+            {"explorer", 0f},
+            {"solid", 0f},
+            {"plus", 0f},
+            {"pro", 0f},
+        };
+        public float DurationTheshold = 3f;
+        public float MinDuration = 10f;
+        public float MaxDuration = 60f;
+        float totalDuration = 0f;
+
         // Awake is called when the script instance is being loaded
         private void Awake()
         {
@@ -57,17 +75,19 @@ namespace Convai.Scripts.Utils
             if (TryGetComponent(out ConvaiNPC npc))
                 // If it does, set the current NPC to this GameObject
                 _currentNPC = npc;
-        }
 
-        private void Reset()
-        {
-            actionMethods = new ActionMethod[]
+            if (GameObject.Find("Main") == null)
+                return;
+
+            GameObject.Find("Main").TryGetComponent<Main>(out Main main);
+
+            if (main)
             {
-                new() { action = "Move To", actionChoice = ActionChoice.MoveTo },
-                new() { action = "Pick Up", actionChoice = ActionChoice.PickUp },
-                new() { action = "Dance", animationName = "Dance", actionChoice = ActionChoice.None },
-                new() { action = "Drop", actionChoice = ActionChoice.Drop }
-            };
+                AdaptiveAgent = main.AdaptiveAgent;
+                if (DebugLog) print("AdaptiveAgent: " + AdaptiveAgent);
+                doors = GameObject.Find("doors 1 agent");
+            }
+
         }
 
         // Start is called before the first frame update
@@ -116,19 +136,76 @@ namespace Convai.Scripts.Utils
 
             // Start playing the action list using a coroutine
             StartCoroutine(PlayActionList());
-            if (MoveToParticipant)
-            {
-                StartCoroutine(GoToParticipant());
-            }
+
+            if (!MoveToParticipant)
+                return;
+
+            et = GameObject.Find("EyeTracking").GetComponent<EyeTrackingManager>();
+
+            if (!AdaptiveAgent)
+                MoveToConsumer();
+            else
+                et.OnEyeTrackingEvent += CheckEyeTrackingForProductHit;
         }
 
         private void Update()
         {
+            totalDuration += Time.deltaTime;
             if (actionResponseList.Count > 0)
             {
                 ParseActions(actionResponseList[0]);
                 actionResponseList.RemoveAt(0);
             }
+        }
+        private void Reset()
+        {
+            actionMethods = new ActionMethod[]
+            {
+                new() { action = "Move To", actionChoice = ActionChoice.MoveTo },
+                new() { action = "Pick Up", actionChoice = ActionChoice.PickUp },
+                new() { action = "Dance", animationName = "Dance", actionChoice = ActionChoice.None },
+                new() { action = "Drop", actionChoice = ActionChoice.Drop }
+            };
+        }
+
+        private void CheckEyeTrackingForProductHit(Vector3 origin, Vector3 direction, RaycastHit hit)
+        {
+            if (hit.transform == null || hit.transform.name == null)
+            {
+                if (DebugLog) Debug.Log("No ET hit found");
+                return; // Do nothing if no transform
+            }
+            string gazeTarget = hit.transform.name;
+            string gazeTargetTag = hit.transform.tag;
+            //if (DebugLog) Debug.Log("ET hit found: " + gazeTarget + " tag: " + gazeTargetTag);
+            if (productEtStatus.ContainsKey(gazeTargetTag))
+            {
+                //if (DebugLog) Debug.Log("Product hit: " + gazeTargetTag);
+                productEtStatus[gazeTargetTag] += (1 / 24f);
+                if (DebugLog) Debug.Log(gazeTargetTag + " " + productEtStatus[gazeTargetTag].ToString());
+            }
+
+            // Check if rules are met
+            bool allProductsHit = productEtStatus.Values.All(duration => duration > DurationTheshold);
+            //if (DebugLog) Debug.Log("All products hit: " + allProductsHit.ToString());
+            if (totalDuration > MaxDuration || (allProductsHit && (totalDuration > MinDuration)))
+            {
+                MoveToConsumer();
+                et.OnEyeTrackingEvent -= CheckEyeTrackingForProductHit;
+            }
+            if (DebugLog) Debug.Log(productEtStatus["explorer"] + productEtStatus["solid"] + productEtStatus["plus"] + productEtStatus["pro"]);
+            if (DebugLog) Debug.Log("Total duration: " + totalDuration);
+        }
+        public void MoveToConsumer()
+        {
+            if (startedMoving)
+                return;
+            startedMoving = true;
+            if (DebugLog) Debug.Log("Moving to customer");
+            if(doors!=null)
+                doors.SetActive(false); // Todo: Use a nice animation to open the door
+            GameObject.Find("DoorClientInfo").GetComponent<TMP_Text>().text = "Nutze den Zeigefinger\num per Trigger Button\nmit dem Agenten zu sprechen.";
+            et.OnEyeTrackingEvent -= CheckEyeTrackingForProductHit;
         }
 
         private void ParseActions(string actionsString)

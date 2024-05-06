@@ -7,7 +7,6 @@ using UnityEngine.XR;
 
 public class Main : DSingleton<Main>
 {
-    private Dictionary<int, string> avatar_id_dic = new Dictionary<int, string>();
     private bool menuIsDone;
     public bool AdaptiveAgent;
     public static bool XrKeydownIndexBool = true;
@@ -19,8 +18,6 @@ public class Main : DSingleton<Main>
         public List<Vector3> eyeTrackingDirectionAdjustments;
     }
 
-    private GameObject leftHandController;
-    private GameObject rightHandController;
 
     float delaytime;
     protected override void Awake()
@@ -63,10 +60,7 @@ public class Main : DSingleton<Main>
             if (delaytime >= 2)
             {
                 delaytime = 0;
-                if (SceneManager.GetActiveScene().name == "00_Menu")
-                    ChangeScene("Calibration");
-                else
-                    ChangeScene(0);
+                ChangeScene(0);
             }
         }
     }

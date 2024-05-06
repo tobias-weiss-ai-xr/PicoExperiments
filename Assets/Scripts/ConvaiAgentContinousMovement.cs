@@ -40,15 +40,19 @@ public class ConvaiAgentContinousMovement : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        // Stay where you are until flag is set
+        if (!actionsHandler.startedMoving)
+            return;
+
         //Make sure our agent is not busy with something else
         if (actionCount == 0)
         {
             currDistanceToPlayer = Vector3.Distance(To2D(this.transform.position), To2D(Camera.main.transform.position));
             if (currDistanceToPlayer > distanceToStartFollow)
             {
-                Vector3 moveDir = (Camera.main.transform.position - this.transform.position).normalized;
-                Vector3 targetPos = To2D(Camera.main.transform.position) + To2D(moveDir) * approachDistance;
-                walkTarget.transform.position = targetPos;
+                // Vector3 moveDir = (Camera.main.transform.position - this.transform.position).normalized;
+                // Vector3 targetPos = To2D(Camera.main.transform.position) + To2D(moveDir) * approachDistance;
+                // walkTarget.transform.position = targetPos;
                 StartCoroutine(actionsHandler.MoveTo(walkTarget));
             }
         }

@@ -32,6 +32,9 @@ public class EyeTrackingManager : MonoBehaviour
 
     public bool DebugLog = true;
     Matrix4x4 matrix;
+
+    public bool UseGazeDot = false;
+
     // Logging
     public event EyeTrackingEvent OnEyeTrackingEvent;
     public delegate void EyeTrackingEvent(Vector3 origin, Vector3 direction, RaycastHit hit);
@@ -75,7 +78,7 @@ public class EyeTrackingManager : MonoBehaviour
                 RaycastHit hit;
                 if (Physics.Raycast(ray, out hit, 20))
                 {
-                    gazePoint.gameObject.SetActive(true);
+                    if (UseGazeDot) gazePoint.gameObject.SetActive(true);
                     gazePoint.DOMove(hit.point, Time.deltaTime).SetEase(Ease.Linear);
                 }
                 else
