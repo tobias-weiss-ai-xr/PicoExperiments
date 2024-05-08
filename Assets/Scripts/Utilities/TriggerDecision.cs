@@ -24,7 +24,7 @@ public class TriggerDecision : MonoBehaviour
         text2.SetActive(false);
         agent = GameObject.Find("Convai NPC Tobias").GetComponent<ConvaiNPC>();
 
-        cartBottomCollider = GameObject.Find("Cart").GetComponentInChildren<BoxCollider>();
+        cartBottomCollider = GameObject.Find("TargetTable").GetComponentInChildren<BoxCollider>();
 
         products = GameObject.FindGameObjectsWithTag("ProductBox");
     }
@@ -39,8 +39,8 @@ public class TriggerDecision : MonoBehaviour
                     text2.SetActive(true);
                     text1.SetActive(false);
                     agent.HandleInputSubmission("Verabschiede die Versuchsperson mit den exakten worten:" + 
-                                                "Vielen Dank für die Entscheidung." + 
-                                                "Das richtige Produkt war der WS 3D Plus." + 
+                                                "Vielen Dank fÃ¼r die Entscheidung." + 
+                                                "Das richtige Produkt war das Plus Modell." + 
                                                 "Nun geht es weiter mit dem Fragebogen."
                                                 );
                     purchaseDone = true;
