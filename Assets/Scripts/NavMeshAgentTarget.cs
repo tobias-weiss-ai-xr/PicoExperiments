@@ -12,9 +12,7 @@ using UnityEngine.SceneManagement;
 public class NavMeshAgentTarget : MonoBehaviour
 {
     public bool AdaptiveAgent = false;
-    [SerializeField]
-    private Transform movePositionTransform;
-    [SerializeField] private float motionSpeed = 1f;
+    public Transform movePositionTransform;
     private NavMeshAgent navMeshAgent;
     private Animator animator;
     private EyeTrackingManager et;
@@ -52,7 +50,6 @@ public class NavMeshAgentTarget : MonoBehaviour
     {
         et = GameObject.Find("EyeTracking").GetComponent<EyeTrackingManager>();
         navMeshAgent = GetComponent<NavMeshAgent>();
-        movePositionTransform = GameObject.Find("MoveTarget").transform;
         animator = GetComponent<Animator>();
         if (SceneManager.GetActiveScene().name == "Preparation")
         {
@@ -112,20 +109,21 @@ public class NavMeshAgentTarget : MonoBehaviour
         {
             startedMoving = true;
             if (DebugLog) Debug.Log("Moving to customer");
-            movePositionTransform = GameObject.Find("XR Origin").transform;
+            movePositionTransform = Camera.main.transform;
             animator.SetFloat("Speed", navMeshAgent.velocity.magnitude);
             if(doors!=null)
             {
                 doors.SetActive(false); // Todo: Use a nice animation to open the door
             }
-            GameObject.Find("DoorClientInfo").GetComponent<TMP_Text>().text = "Remember to press the trigger\n to ask questions!";
+            GameObject.Find("DoorClientInfo").GetComponent<TMP_Text>().text = "Nutze den Zeigefinger\num per Trigger (push to talk)\nmit dem Agenten zu sprechen.";
         }
         et.OnEyeTrackingEvent -= CheckEyeTrackingForProductHit;
     }
     void Update()
     {
         duration += Time.deltaTime; // Update timer
-        navMeshAgent.destination = movePositionTransform.position;
-        animator.SetFloat("Speed", navMeshAgent.velocity.magnitude);
+        if(!GetComponent<Animator>().GetBool("Talk"))
+            navMeshAgent.destination = movePositionTransform.position;
+        animator.SetBool("Walking", navMeshAgent.velocity.magnitude > 0.1);
     }
 }

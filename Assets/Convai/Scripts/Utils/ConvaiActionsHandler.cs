@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using Service;
 using TMPro;
 using UnityEngine;
+using UnityEngine.AI;
 using UnityEngine.Serialization;
 
 namespace Convai.Scripts.Utils
@@ -58,6 +59,7 @@ namespace Convai.Scripts.Utils
         public float MinDuration = 10f;
         public float MaxDuration = 60f;
         float totalDuration = 0f;
+        private NavMeshAgentTarget navMeshAgentTarget;
 
         // Awake is called when the script instance is being loaded
         private void Awake()
@@ -143,7 +145,7 @@ namespace Convai.Scripts.Utils
             et = GameObject.Find("EyeTracking").GetComponent<EyeTrackingManager>();
 
             if (!AdaptiveAgent)
-                MoveToConsumer();
+                GetComponent<NavMeshAgentTarget>().MoveToConsumer();
             else
                 et.OnEyeTrackingEvent += CheckEyeTrackingForProductHit;
         }
@@ -190,22 +192,11 @@ namespace Convai.Scripts.Utils
             //if (DebugLog) Debug.Log("All products hit: " + allProductsHit.ToString());
             if (totalDuration > MaxDuration || (allProductsHit && (totalDuration > MinDuration)))
             {
-                MoveToConsumer();
+                GetComponent<NavMeshAgentTarget>().MoveToConsumer();
                 et.OnEyeTrackingEvent -= CheckEyeTrackingForProductHit;
             }
             if (DebugLog) Debug.Log(productEtStatus["explorer"] + productEtStatus["solid"] + productEtStatus["plus"] + productEtStatus["pro"]);
             if (DebugLog) Debug.Log("Total duration: " + totalDuration);
-        }
-        public void MoveToConsumer()
-        {
-            if (startedMoving)
-                return;
-            startedMoving = true;
-            if (DebugLog) Debug.Log("Moving to customer");
-            if(doors!=null)
-                doors.SetActive(false); // Todo: Use a nice animation to open the door
-            GameObject.Find("DoorClientInfo").GetComponent<TMP_Text>().text = "Nutze den Zeigefinger\num per Trigger Button\nmit dem Agenten zu sprechen.";
-            et.OnEyeTrackingEvent -= CheckEyeTrackingForProductHit;
         }
 
         private void ParseActions(string actionsString)
@@ -612,6 +603,8 @@ namespace Convai.Scripts.Utils
         public IEnumerator MoveTo(GameObject target)
         {
             ActionStarted?.Invoke("MoveTo", target);
+            Animator animator = GetComponent<Animator>();
+            animator.SetBool("Walking", true);
             // If the target is null or not active, we don't want to move towards it.
             if (target == null || !target.activeInHierarchy)
             {
@@ -623,6 +616,10 @@ namespace Convai.Scripts.Utils
             // Log that we are starting the movement towards the target.
             Logger.DebugLog($"Moving to Target: {target.name}", Logger.LogCategory.Actions);
 
+            navMeshAgentTarget = GetComponent<NavMeshAgentTarget>();
+            navMeshAgentTarget.movePositionTransform = target.transform;
+
+            /*
             // Start the "Walking" animation.         
             Animator animator = _currentNPC.GetComponent<Animator>();
              animator.CrossFade(Animator.StringToHash("Walking"), 0.01f);
@@ -665,6 +662,7 @@ namespace Convai.Scripts.Utils
 
             // Transition to the "Idle" animation once we've reached the target.
             animator.CrossFade(Animator.StringToHash("Idle"), 0.1f);
+            */
 
             ActionEnded?.Invoke("MoveTo", target);
         }
@@ -795,18 +793,6 @@ namespace Convai.Scripts.Utils
             yield return MoveTo(checkoutTable);
             ActionEnded?.Invoke("Checkout", _currentNPC.gameObject);
         }
-
-        private IEnumerator GoToParticipant()
-        {
-            GameObject doorWp = GameObject.Find("DoorWaypoint");
-            GameObject welcomeWp = GameObject.Find("WelcomeWaypoint");
-            yield return MoveTo(doorWp);
-            yield return null; //Needed because animator blocks all but the first crossfade each frame.
-            yield return MoveTo(welcomeWp);
-            // yield return null; //Needed because animator blocks all but the first crossfade each frame.
-            // yield return MoveTo(Camera.main.gameObject);
-        }
-
 
         #endregion
     }
