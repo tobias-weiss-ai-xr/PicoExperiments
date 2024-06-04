@@ -24,10 +24,8 @@ public class NavMeshAgentTarget : MonoBehaviour
         {"plus", 0f},
         {"pro", 0f},
     };
-
     public bool DebugLog = true;
     private bool startedMoving = false;
-
     public float DurationTheshold = 10f;
     public float MinDuration = 30f;
     public float MaxDuration = 120f;
@@ -100,7 +98,6 @@ public class NavMeshAgentTarget : MonoBehaviour
             return;
         startedMoving = true;
         if (DebugLog) Debug.Log("Moving to static target");
-        animator.SetFloat("Speed", navMeshAgent.velocity.magnitude);
     }
 
     public void MoveToConsumer()
@@ -110,7 +107,6 @@ public class NavMeshAgentTarget : MonoBehaviour
             startedMoving = true;
             if (DebugLog) Debug.Log("Moving to customer");
             movePositionTransform = Camera.main.transform;
-            animator.SetFloat("Speed", navMeshAgent.velocity.magnitude);
             if(doors!=null)
             {
                 doors.SetActive(false); // Todo: Use a nice animation to open the door
@@ -122,8 +118,7 @@ public class NavMeshAgentTarget : MonoBehaviour
     void Update()
     {
         duration += Time.deltaTime; // Update timer
-        if(!GetComponent<Animator>().GetBool("Talk"))
-            navMeshAgent.destination = movePositionTransform.position;
+        navMeshAgent.destination = movePositionTransform.position;
         animator.SetBool("Walking", navMeshAgent.velocity.magnitude > 0.1);
     }
 }

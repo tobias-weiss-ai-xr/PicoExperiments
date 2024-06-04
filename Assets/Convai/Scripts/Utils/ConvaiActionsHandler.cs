@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text.RegularExpressions;
 using Service;
 using TMPro;
@@ -138,16 +139,6 @@ namespace Convai.Scripts.Utils
 
             // Start playing the action list using a coroutine
             StartCoroutine(PlayActionList());
-
-            if (!MoveToParticipant)
-                return;
-
-            et = GameObject.Find("EyeTracking").GetComponent<EyeTrackingManager>();
-
-            if (!AdaptiveAgent)
-                GetComponent<NavMeshAgentTarget>().MoveToConsumer();
-            else
-                et.OnEyeTrackingEvent += CheckEyeTrackingForProductHit;
         }
 
         private void Update()
@@ -168,35 +159,6 @@ namespace Convai.Scripts.Utils
                 new() { action = "Dance", animationName = "Dance", actionChoice = ActionChoice.None },
                 new() { action = "Drop", actionChoice = ActionChoice.Drop }
             };
-        }
-
-        private void CheckEyeTrackingForProductHit(Vector3 origin, Vector3 direction, RaycastHit hit)
-        {
-            if (hit.transform == null || hit.transform.name == null)
-            {
-                if (DebugLog) Debug.Log("No ET hit found");
-                return; // Do nothing if no transform
-            }
-            string gazeTarget = hit.transform.name;
-            string gazeTargetTag = hit.transform.tag;
-            //if (DebugLog) Debug.Log("ET hit found: " + gazeTarget + " tag: " + gazeTargetTag);
-            if (productEtStatus.ContainsKey(gazeTargetTag))
-            {
-                //if (DebugLog) Debug.Log("Product hit: " + gazeTargetTag);
-                productEtStatus[gazeTargetTag] += (1 / 24f);
-                if (DebugLog) Debug.Log(gazeTargetTag + " " + productEtStatus[gazeTargetTag].ToString());
-            }
-
-            // Check if rules are met
-            bool allProductsHit = productEtStatus.Values.All(duration => duration > DurationTheshold);
-            //if (DebugLog) Debug.Log("All products hit: " + allProductsHit.ToString());
-            if (totalDuration > MaxDuration || (allProductsHit && (totalDuration > MinDuration)))
-            {
-                GetComponent<NavMeshAgentTarget>().MoveToConsumer();
-                et.OnEyeTrackingEvent -= CheckEyeTrackingForProductHit;
-            }
-            if (DebugLog) Debug.Log(productEtStatus["explorer"] + productEtStatus["solid"] + productEtStatus["plus"] + productEtStatus["pro"]);
-            if (DebugLog) Debug.Log("Total duration: " + totalDuration);
         }
 
         private void ParseActions(string actionsString)
@@ -781,19 +743,15 @@ namespace Convai.Scripts.Utils
         private IEnumerator Checkout()
         {
             ActionStarted?.Invoke("Checkout", _currentNPC.gameObject);
-            GameObject doorwp = GameObject.Find("DoorWaypoint");
-            print(doorwp);
-            GameObject checkoutTable = GameObject.Find("CheckoutTable");
-            //Check if we are within three meters of checkout table. If so, assume we are already on the right side of the door.
-            if (Vector3.Distance(this.transform.position, checkoutTable.transform.position) > 3 && doorwp != null)
-            {
-                yield return MoveTo(doorwp);
-                yield return null; //Needed because animator blocks all but the first crossfade each frame.
-            }
-            yield return MoveTo(checkoutTable);
+            yield return new WaitForSeconds(1.0f);
+            Transform wp = GameObject.Find("CheckoutTarget").transform;
+            Transform oldWp =  _currentNPC.GetComponent<NavMeshAgentTarget>().movePositionTransform;
+            _currentNPC.GetComponent<NavMeshAgentTarget>().movePositionTransform = wp;
+            // switch back to consumer as target
+            yield return new WaitForSeconds(10.0f);
+            _currentNPC.GetComponent<NavMeshAgentTarget>().movePositionTransform = oldWp;
             ActionEnded?.Invoke("Checkout", _currentNPC.gameObject);
         }
-
         #endregion
     }
 }
