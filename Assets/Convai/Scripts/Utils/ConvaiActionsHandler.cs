@@ -310,6 +310,7 @@ namespace Convai.Scripts.Utils
                     // Call the Jump function
                     Jump();
                     break;
+
                 case ActionChoice.Checkout:
                     yield return Checkout();
                     break;
@@ -745,11 +746,10 @@ namespace Convai.Scripts.Utils
             ActionStarted?.Invoke("Checkout", _currentNPC.gameObject);
             yield return new WaitForSeconds(1.0f);
             Transform wp = GameObject.Find("CheckoutTarget").transform;
-            Transform oldWp =  _currentNPC.GetComponent<NavMeshAgentTarget>().movePositionTransform;
             _currentNPC.GetComponent<NavMeshAgentTarget>().movePositionTransform = wp;
             // switch back to consumer as target
             yield return new WaitForSeconds(10.0f);
-            _currentNPC.GetComponent<NavMeshAgentTarget>().movePositionTransform = oldWp;
+            _currentNPC.GetComponent<NavMeshAgentTarget>().movePositionTransform = Camera.main.transform;
             ActionEnded?.Invoke("Checkout", _currentNPC.gameObject);
         }
         #endregion
