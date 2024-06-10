@@ -582,50 +582,8 @@ namespace Convai.Scripts.Utils
             navMeshAgentTarget = GetComponent<NavMeshAgentTarget>();
             navMeshAgentTarget.movePositionTransform = target.transform;
 
-            /*
-            // Start the "Walking" animation.         
-            Animator animator = _currentNPC.GetComponent<Animator>();
-             animator.CrossFade(Animator.StringToHash("Walking"), 0.01f);
-
-
-            // Define move speed. This could also be a parameter or calculated dynamically if needed.
-            float moveSpeed = 1.5f;
-
-            // The stopping distance to the target, to avoid overshooting or getting too close.
-            float stoppingDistance = 1.65f;
-
-            // Loop until the character is within the stopping distance to the target.
-            while (Vector3.Distance(transform.position, target.transform.position) > stoppingDistance)
-            {
-                // Make sure the target is still active during the movement.
-                if (!target.activeInHierarchy)
-                {
-                    // Log and break if the target has been deactivated during the movement.
-                    Logger.DebugLog("Target deactivated during movement.", Logger.LogCategory.Actions);
-                    yield break;
-                }
-
-                // Calculate the direction towards the target
-                Vector3 direction = (target.transform.position - transform.position).normalized;
-
-                // Ensure the character stays upright by zeroing the y-component of the direction.
-                direction.y = 0;
-
-                // Rotate the character to face the target using a slerp for smoother rotation.
-                transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(direction),
-                    Time.deltaTime * 5f);
-
-                // Move the character towards the target position.
-                transform.position = Vector3.MoveTowards(transform.position, new Vector3(target.transform.position.x, 0,target.transform.position.z),
-                    moveSpeed * Time.deltaTime);
-
-                // Yield until the next frame.
-                yield return null;
-            }
-
-            // Transition to the "Idle" animation once we've reached the target.
-            animator.CrossFade(Animator.StringToHash("Idle"), 0.1f);
-            */
+            yield return new WaitForSeconds(5.0f);
+            _currentNPC.GetComponent<NavMeshAgentTarget>().movePositionTransform = Camera.main.transform;
 
             ActionEnded?.Invoke("MoveTo", target);
         }
@@ -748,7 +706,7 @@ namespace Convai.Scripts.Utils
             Transform wp = GameObject.Find("CheckoutTarget").transform;
             _currentNPC.GetComponent<NavMeshAgentTarget>().movePositionTransform = wp;
             // switch back to consumer as target
-            yield return new WaitForSeconds(10.0f);
+            yield return new WaitForSeconds(5.0f);
             _currentNPC.GetComponent<NavMeshAgentTarget>().movePositionTransform = Camera.main.transform;
             ActionEnded?.Invoke("Checkout", _currentNPC.gameObject);
         }
