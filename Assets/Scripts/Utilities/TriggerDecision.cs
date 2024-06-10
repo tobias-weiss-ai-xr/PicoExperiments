@@ -38,7 +38,7 @@ public class TriggerDecision : MonoBehaviour
                 {
                     text2.SetActive(true);
                     text1.SetActive(false);
-                    agent.HandleInputSubmission("Verabschiede die Versuchsperson mit den exakten worten:" + 
+                    agent.HandleInputSubmission("Verabschiede die Versuchsperson mit den Worten:" + 
                                                 "Vielen Dank für die Entscheidung." + 
                                                 "Das richtige Produkt war das Plus Modell." + 
                                                 "Nun geht es weiter mit dem Fragebogen."

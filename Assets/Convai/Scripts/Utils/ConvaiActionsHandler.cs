@@ -582,7 +582,7 @@ namespace Convai.Scripts.Utils
             navMeshAgentTarget = GetComponent<NavMeshAgentTarget>();
             navMeshAgentTarget.movePositionTransform = target.transform;
 
-            yield return new WaitForSeconds(5.0f);
+            yield return new WaitForSeconds(7.0f);
             _currentNPC.GetComponent<NavMeshAgentTarget>().movePositionTransform = Camera.main.transform;
 
             ActionEnded?.Invoke("MoveTo", target);
@@ -702,11 +702,10 @@ namespace Convai.Scripts.Utils
         private IEnumerator Checkout()
         {
             ActionStarted?.Invoke("Checkout", _currentNPC.gameObject);
-            yield return new WaitForSeconds(1.0f);
             Transform wp = GameObject.Find("CheckoutTarget").transform;
             _currentNPC.GetComponent<NavMeshAgentTarget>().movePositionTransform = wp;
             // switch back to consumer as target
-            yield return new WaitForSeconds(5.0f);
+            yield return new WaitForSeconds(7.0f);
             _currentNPC.GetComponent<NavMeshAgentTarget>().movePositionTransform = Camera.main.transform;
             ActionEnded?.Invoke("Checkout", _currentNPC.gameObject);
         }
