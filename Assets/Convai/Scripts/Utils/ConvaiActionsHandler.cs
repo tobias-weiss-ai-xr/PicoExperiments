@@ -142,6 +142,12 @@ namespace Convai.Scripts.Utils
                 new() { action = "Pick Up", actionChoice = ActionChoice.PickUp },
                 new() { action = "Dance", animationName = "Dance", actionChoice = ActionChoice.None },
                 new() { action = "Drop", actionChoice = ActionChoice.Drop }
+                new() { action = "Checkout", actionChoice = ActionChoice.Checkout },
+                new() { action = "Kaufe", actionChoice = ActionChoice.Checkout },
+                new() { action = "Kasse", actionChoice = ActionChoice.Checkout },
+                new() { action = "Drucke", actionChoice = ActionChoice.UsePrinter },
+                new() { action = "Beispiel", actionChoice = ActionChoice.UsePrinter },
+                new() { action = "Muster", actionChoice = ActionChoice.UsePrinter },
             };
         }
 
