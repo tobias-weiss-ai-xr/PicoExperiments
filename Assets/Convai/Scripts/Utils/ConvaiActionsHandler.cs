@@ -311,6 +311,7 @@ namespace Convai.Scripts.Utils
                     // Call the Crouch function and yield until it's completed
                     yield return Crouch();
                     break;
+
                 case ActionChoice.UsePrinter:
                     // Call the UsePrinter function and yield until it's completed
                     yield return UsePrinter();
@@ -520,9 +521,9 @@ namespace Convai.Scripts.Utils
             _currentNPC.HandleInputSubmission("Du hast das Beispiel gedruckt, frage den Kunden:" + 
                                     "Kann ich Ihnen sonst noch bei Ihrer Entscheidung helfen?."
                                     );
+            yield return new WaitForSeconds(2f);
             navMeshAgentTarget.movePositionTransform = old_wp;
             ActionEnded?.Invoke("UsePrinter", null);
-            yield return new WaitForSeconds(0f);
         }
 
         private IEnumerator Checkout()
@@ -549,9 +550,10 @@ namespace Convai.Scripts.Utils
             //Do not use anymore
             // Do it directly via NavMeshAgentTarget
             //navMeshAgentTarget.movePositionTransform = target.transform;
-            yield return null;
-
             ActionStarted?.Invoke("MoveTo", target);
+            yield return null;
+            ActionEnded?.Invoke("MoveTo", target);
+            /*
             if (navMeshAgentTarget == null) 
             {
                 Logger.DebugLog($"NavMeshAgent not found", Logger.LogCategory.Actions);
@@ -564,7 +566,7 @@ namespace Convai.Scripts.Utils
             }
             // Log that we are starting the movement towards the target.
             Logger.DebugLog($"Moving to Target: {target.name}", Logger.LogCategory.Actions);
-            ActionEnded?.Invoke("MoveTo", target);
+            */
         }
 
         private IEnumerator Crouch()
