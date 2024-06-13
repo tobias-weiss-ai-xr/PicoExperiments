@@ -122,6 +122,8 @@ namespace Convai.Scripts.Utils
 
             #endregion
 
+            navMeshAgentTarget = GetComponent<NavMeshAgentTarget>();
+
             // Start playing the action list using a coroutine
             StartCoroutine(PlayActionList());
         }
@@ -141,7 +143,7 @@ namespace Convai.Scripts.Utils
                 new() { action = "Move To", actionChoice = ActionChoice.MoveTo },
                 new() { action = "Pick Up", actionChoice = ActionChoice.PickUp },
                 new() { action = "Dance", animationName = "Dance", actionChoice = ActionChoice.None },
-                new() { action = "Drop", actionChoice = ActionChoice.Drop }
+                new() { action = "Drop", actionChoice = ActionChoice.Drop },
                 new() { action = "Checkout", actionChoice = ActionChoice.Checkout },
                 new() { action = "Kaufe", actionChoice = ActionChoice.Checkout },
                 new() { action = "Kasse", actionChoice = ActionChoice.Checkout },
@@ -505,44 +507,63 @@ namespace Convai.Scripts.Utils
         private IEnumerator UsePrinter()
         {
             ActionStarted?.Invoke("UsePrinter", null);
+            Transform old_wp = navMeshAgentTarget.movePositionTransform;
             GameObject printerObject = GameObject.Find("Printer 3D WS Plus");
-            yield return StartCoroutine(MoveTo(printerObject));
+            navMeshAgentTarget.movePositionTransform = old_wp;
             SpawnObject printer = printerObject.GetComponent<SpawnObject>();
             if (printer != null)
             {
                 printer.SpawnRabbit();
                 printer.GetComponent<TriggerAnimation>().Run();
             }
-            yield return StartCoroutine(MoveTo(Camera.main.gameObject));
+            yield return new WaitForSeconds(5.0f);
+            _currentNPC.HandleInputSubmission("Du hast das Beispiel gedruckt, frage den Kunden:" + 
+                                    "Kann ich Ihnen sonst noch bei Ihrer Entscheidung helfen?."
+                                    );
+            navMeshAgentTarget.movePositionTransform = old_wp;
             ActionEnded?.Invoke("UsePrinter", null);
-            yield return null;
+            yield return new WaitForSeconds(0f);
         }
 
         private IEnumerator Checkout()
         {
             ActionStarted?.Invoke("Checkout", _currentNPC.gameObject);
+            Transform old_wp = navMeshAgentTarget.movePositionTransform;
             Transform wp = GameObject.Find("CheckoutTarget").transform;
             Logger.DebugLog($"Checkout Action triggered", Logger.LogCategory.Actions);
             _currentNPC.GetComponent<NavMeshAgentTarget>().movePositionTransform = wp;
             // switch back to consumer as target
-            yield return new WaitForSeconds(7.0f);
+            yield return new WaitForSeconds(2.0f);
             Logger.DebugLog($"Checkout Conversation triggered", Logger.LogCategory.Actions);
             _currentNPC.HandleInputSubmission("Du bist nun am Checkout, sage zum Kunden:" + 
                                     "Dies ist der Checkout." +
                                     "Bitte legen Sie die Box, die Ihrer Wahl entspricht, auf en Checkout-Tisch." 
                                     );
-            _currentNPC.GetComponent<NavMeshAgentTarget>().movePositionTransform = Camera.main.transform;
+            yield return new WaitForSeconds(5.0f);
+            navMeshAgentTarget.movePositionTransform = old_wp;
             ActionEnded?.Invoke("Checkout", _currentNPC.gameObject);
         }
 
         public IEnumerator MoveTo(GameObject target)
         {
+            //Do not use anymore
+            // Do it directly via NavMeshAgentTarget
+            //navMeshAgentTarget.movePositionTransform = target.transform;
+            yield return null;
+
             ActionStarted?.Invoke("MoveTo", target);
+            if (navMeshAgentTarget == null) 
+            {
+                Logger.DebugLog($"NavMeshAgent not found", Logger.LogCategory.Actions);
+                yield return null;
+            }
+            if (target.transform == null) 
+            {
+                Logger.DebugLog($"Target transform not found", Logger.LogCategory.Actions);
+                yield return null;
+            }
             // Log that we are starting the movement towards the target.
             Logger.DebugLog($"Moving to Target: {target.name}", Logger.LogCategory.Actions);
-            navMeshAgentTarget = GetComponent<NavMeshAgentTarget>();
-            navMeshAgentTarget.movePositionTransform = target.transform;
-            yield return new WaitForSeconds(0f);
             ActionEnded?.Invoke("MoveTo", target);
         }
 
