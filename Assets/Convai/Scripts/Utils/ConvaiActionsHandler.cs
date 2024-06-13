@@ -42,24 +42,10 @@ namespace Convai.Scripts.Utils
         private List<string> _actions = new();
         private ConvaiNPC _currentNPC;
         private ConvaiInteractablesData _interactablesData;
-        public bool MoveToParticipant;
 
-        private GameObject doors;
         public bool AdaptiveAgent = false;
-        private EyeTrackingManager et;
         public bool DebugLog = true;
         public bool startedMoving = false;
-        Dictionary<string, float> productEtStatus = new Dictionary<string, float>
-        {
-            {"explorer", 0f},
-            {"solid", 0f},
-            {"plus", 0f},
-            {"pro", 0f},
-        };
-        public float DurationTheshold = 3f;
-        public float MinDuration = 10f;
-        public float MaxDuration = 60f;
-        float totalDuration = 0f;
         private NavMeshAgentTarget navMeshAgentTarget;
 
         // Awake is called when the script instance is being loaded
@@ -88,7 +74,6 @@ namespace Convai.Scripts.Utils
             {
                 AdaptiveAgent = main.AdaptiveAgent;
                 if (DebugLog) print("AdaptiveAgent: " + AdaptiveAgent);
-                doors = GameObject.Find("doors 1 agent");
             }
 
         }
@@ -143,7 +128,6 @@ namespace Convai.Scripts.Utils
 
         private void Update()
         {
-            totalDuration += Time.deltaTime;
             if (actionResponseList.Count > 0)
             {
                 ParseActions(actionResponseList[0]);
@@ -523,10 +507,38 @@ namespace Convai.Scripts.Utils
                 printer.SpawnRabbit();
                 printer.GetComponent<TriggerAnimation>().Run();
             }
+            yield return StartCoroutine(MoveTo(Camera.main.gameObject));
             ActionEnded?.Invoke("UsePrinter", null);
             yield return null;
         }
 
+        private IEnumerator Checkout()
+        {
+            ActionStarted?.Invoke("Checkout", _currentNPC.gameObject);
+            Transform wp = GameObject.Find("CheckoutTarget").transform;
+            Logger.DebugLog($"Checkout Action triggered", Logger.LogCategory.Actions);
+            _currentNPC.GetComponent<NavMeshAgentTarget>().movePositionTransform = wp;
+            // switch back to consumer as target
+            yield return new WaitForSeconds(7.0f);
+            Logger.DebugLog($"Checkout Conversation triggered", Logger.LogCategory.Actions);
+            _currentNPC.HandleInputSubmission("Du bist nun am Checkout, sage zum Kunden:" + 
+                                    "Dies ist der Checkout." +
+                                    "Bitte legen Sie die Box, die Ihrer Wahl entspricht, auf en Checkout-Tisch." 
+                                    );
+            _currentNPC.GetComponent<NavMeshAgentTarget>().movePositionTransform = Camera.main.transform;
+            ActionEnded?.Invoke("Checkout", _currentNPC.gameObject);
+        }
+
+        public IEnumerator MoveTo(GameObject target)
+        {
+            ActionStarted?.Invoke("MoveTo", target);
+            // Log that we are starting the movement towards the target.
+            Logger.DebugLog($"Moving to Target: {target.name}", Logger.LogCategory.Actions);
+            navMeshAgentTarget = GetComponent<NavMeshAgentTarget>();
+            navMeshAgentTarget.movePositionTransform = target.transform;
+            yield return new WaitForSeconds(0f);
+            ActionEnded?.Invoke("MoveTo", target);
+        }
 
         private IEnumerator Crouch()
         {
@@ -563,30 +575,6 @@ namespace Convai.Scripts.Utils
             ActionEnded?.Invoke("Crouch", _currentNPC.gameObject);
         }
 
-        public IEnumerator MoveTo(GameObject target)
-        {
-            ActionStarted?.Invoke("MoveTo", target);
-            Animator animator = GetComponent<Animator>();
-            animator.SetBool("Walking", true);
-            // If the target is null or not active, we don't want to move towards it.
-            if (target == null || !target.activeInHierarchy)
-            {
-                // Log an error if the target is null or inactive.
-                Logger.DebugLog("MoveTo target is null or inactive.", Logger.LogCategory.Actions);
-                yield break; // Exit the coroutine.
-            }
-
-            // Log that we are starting the movement towards the target.
-            Logger.DebugLog($"Moving to Target: {target.name}", Logger.LogCategory.Actions);
-
-            navMeshAgentTarget = GetComponent<NavMeshAgentTarget>();
-            navMeshAgentTarget.movePositionTransform = target.transform;
-
-            yield return new WaitForSeconds(7.0f);
-            _currentNPC.GetComponent<NavMeshAgentTarget>().movePositionTransform = Camera.main.transform;
-
-            ActionEnded?.Invoke("MoveTo", target);
-        }
 
         private IEnumerator PickUp(GameObject target)
         {
@@ -697,17 +685,6 @@ namespace Convai.Scripts.Utils
             _currentNPC.GetComponent<Animator>().CrossFade(Animator.StringToHash("Dance"), 1);
 
             ActionEnded?.Invoke("Jump", _currentNPC.gameObject);
-        }
-
-        private IEnumerator Checkout()
-        {
-            ActionStarted?.Invoke("Checkout", _currentNPC.gameObject);
-            Transform wp = GameObject.Find("CheckoutTarget").transform;
-            _currentNPC.GetComponent<NavMeshAgentTarget>().movePositionTransform = wp;
-            // switch back to consumer as target
-            yield return new WaitForSeconds(7.0f);
-            _currentNPC.GetComponent<NavMeshAgentTarget>().movePositionTransform = Camera.main.transform;
-            ActionEnded?.Invoke("Checkout", _currentNPC.gameObject);
         }
         #endregion
     }
