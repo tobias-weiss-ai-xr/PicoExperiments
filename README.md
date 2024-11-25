@@ -2,6 +2,8 @@
 
 This is a skeleton for experiments using the Pico 4 Enterprise HMD.
 
+![img/monty-hall.png](img/OpenPico4VrEnvironment.png)
+
 ![img/monty-hall.png](img/menu.png)
 
 It contains following demos:
