@@ -1,4 +1,4 @@
-# Pico Experiments
+# #kd2school Open VR Environment Skeleton for the Pico 4 Enterprise
 
 This is a skeleton for experiments using the Pico 4 Enterprise HMD.
 
