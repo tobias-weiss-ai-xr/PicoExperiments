@@ -2,12 +2,20 @@
 
 This is a skeleton for experiments using the Pico 4 Enterprise HMD.
 
+![img/monty-hall.png](img/menu.png)
+
 It contains following demos:
 - Monty Hall Game
+![img/monty-hall.png](img/monty-hall.png)
+
 - AI sales avatar for 3D printers
+![img/showroom-agent.png](img/showroom-agent.png)
 - Car showroom
-- Cybersickness questionnaire
+![img/showroom-tank-car-plane.png](img/showroom-tank-car-plane.png)
 - Supermarket
+![img/supermarket-agent.png](img/supermarket-agent.png)
+- Immersive VR questionnaire
+- and more...
 
 ## Setup
 - To check out the `.fbx` files run `git lfs pull`
@@ -15,7 +23,7 @@ It contains following demos:
 
 ## Face Tracking
 
-![ft-manager-settings.png](ft-manager-settings.png)
+![img/ft-manager-settings.png](img/ft-manager-settings.png)
 
 To enable Face Tracking, you need to pick a Face Tracking Mode on PXR_Manager.
 
