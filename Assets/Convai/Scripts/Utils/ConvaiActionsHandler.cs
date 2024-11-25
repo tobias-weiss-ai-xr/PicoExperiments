@@ -510,7 +510,8 @@ namespace Convai.Scripts.Utils
             ActionStarted?.Invoke("UsePrinter", null);
             Transform old_wp = navMeshAgentTarget.movePositionTransform;
             GameObject printerObject = GameObject.Find("Printer 3D WS Plus");
-            navMeshAgentTarget.movePositionTransform = old_wp;
+            Transform wp = printerObject.transform;
+            navMeshAgentTarget.movePositionTransform = wp;
             SpawnObject printer = printerObject.GetComponent<SpawnObject>();
             if (printer != null)
             {
