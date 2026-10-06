@@ -101,6 +101,13 @@ public class MontyHallLogic : MonoBehaviour
         offerIndex = Monty(); // Get offer
         makeNewOffer = false;
 
+        if (offerIndex < 0)
+        {
+            // No goat door to reveal (fewer than 3 doors): go straight to the result
+            ShowEvalUi();
+            return;
+        }
+
         doors[offerIndex].Find("WallFront").gameObject.SetActive(false);
         revealTimeRemaining = 5f;
         revealTimerIsRunning = true;
@@ -145,7 +152,10 @@ public class MontyHallLogic : MonoBehaviour
         headerText.text = headerText.text.Substring(0, headerText.text.Length - 1) + (char)(65 + choiceIndex);
 
         doors[offerIndex].Find("WallFront").gameObject.SetActive(true);
+        // Listeners are re-added every round; clear first so callbacks don't stack
+        switchUi.Find("Buttons/Yes").GetComponent<Button>().onClick.RemoveAllListeners();
         switchUi.Find("Buttons/Yes").GetComponent<Button>().onClick.AddListener(() => ShowEvalUi());
+        switchUi.Find("Buttons/No").GetComponent<Button>().onClick.RemoveAllListeners();
         switchUi.Find("Buttons/No").GetComponent<Button>().onClick.AddListener(() => ShowChoiceUi());
     }
     void ShowEvalUi()
@@ -165,7 +175,9 @@ public class MontyHallLogic : MonoBehaviour
         Text modalText = evalUi.Find("ModalText").GetComponent<Text>();
         modalText.text = winText;
 
+        evalUi.Find("Buttons/Repeat").GetComponent<Button>().onClick.RemoveAllListeners();
         evalUi.Find("Buttons/Repeat").GetComponent<Button>().onClick.AddListener(() => StartGame());
+        evalUi.Find("Buttons/Exit").GetComponent<Button>().onClick.RemoveAllListeners();
         evalUi.Find("Buttons/Exit").GetComponent<Button>().onClick.AddListener(() => SceneManager.LoadScene("00_Menu"));
     }
     void StartUiDoorButtonClicked(int buttonNo)
@@ -185,6 +197,8 @@ public class MontyHallLogic : MonoBehaviour
                 options.Add(i);
             }
         }
+        if (options.Count == 0)
+            return -1; // no goat to reveal: only possible with fewer than 3 doors
         var offer = options[Random.Range(0, options.Count)];
         Debug.Log("Offer = " + offer.ToString());
         return offer;

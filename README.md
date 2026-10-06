@@ -20,7 +20,6 @@ It contains following demos:
 - and more...
 
 ## Setup
-- To check out the `.fbx` files run `git lfs pull`
 - Open Unity and select Android Platform to build the APK
 
 ## Face Tracking

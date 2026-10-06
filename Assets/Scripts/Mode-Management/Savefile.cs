@@ -109,6 +109,14 @@ public class Savefile : MonoBehaviour
             avatarModel = AvatarLooks.BUSINESSMAN;
         }
 
+        // Fallback for savefiles that reference input modes which have since been disabled
+        if (avatarInput != AvatarInput.THIRDPERSON && avatarInput != AvatarInput.WEBCAM)
+        {
+            Debug.LogWarning($"AvatarInput {avatarInput} is no longer supported; falling back to THIRDPERSON.");
+            avatarInput = AvatarInput.THIRDPERSON;
+            if (avatarModel == AvatarLooks.MUSTAFA) // only rendered via the removed Optitrack path
+                avatarModel = AvatarLooks.BUSINESSMAN;
+        }
 
         switch (avatarInput)
         {

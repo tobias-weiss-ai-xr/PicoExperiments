@@ -1,0 +1,27 @@
+﻿<Solution>
+  <Project Path="Unity.AI.Navigation.Samples.csproj" />
+  <Project Path="Assembly-CSharp.csproj" />
+  <Project Path="Unity.XR.PICO.csproj" />
+  <Project Path="ReadyPlayerMe.Editor.csproj" />
+  <Project Path="Pico.Spatializer.Example.csproj" />
+  <Project Path="soupday.cc3_unity_tools.editor.csproj" />
+  <Project Path="ReadyPlayerMe.csproj" />
+  <Project Path="PICO.Platform.csproj" />
+  <Project Path="PICO.TobSupport.csproj" />
+  <Project Path="HuggingFaceAPI.csproj" />
+  <Project Path="Unity.AI.Navigation.Samples.Initialization.Editor.csproj" />
+  <Project Path="Unity.XR.PICO.Editor.csproj" />
+  <Project Path="Siccity.GLTFUtility.csproj" />
+  <Project Path="Assembly-CSharp-Editor.csproj" />
+  <Project Path="Unity.XR.Interaction.Toolkit.Samples.DeviceSimulator.csproj" />
+  <Project Path="soupday.cc3_unity_tools.runtime.csproj" />
+  <Project Path="PICO.Platform.Editor.csproj" />
+  <Project Path="HuggingFaceAPI.Editor.csproj" />
+  <Project Path="Unity.XR.Interaction.Toolkit.Samples.StarterAssets.csproj" />
+  <Project Path="Pico.Spatializer.csproj" />
+  <Project Path="Pico.Spatializer.Editor.csproj" />
+  <Project Path="Tests.csproj" />
+  <Project Path="Siccity.GLTFUtility.Editor.csproj" />
+  <Project Path="Unity.VSAttribution.Editor.csproj" />
+  <Project Path="ReadyPlayerMe.Extras.Editor.csproj" />
+</Solution>
