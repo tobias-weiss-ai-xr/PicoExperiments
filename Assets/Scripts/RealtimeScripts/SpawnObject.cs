@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Collections.Generic;
-using UnityEditor;
 using UnityEngine;
 using Normal.Realtime;
 using System.Linq;
@@ -25,7 +24,13 @@ public class SpawnObject : MonoBehaviour
         {
             var name = "Spawn";
             var allKids = GetComponentsInChildren<Transform>();
-            spawnPoint = allKids.Where(k => k.gameObject.name == name).FirstOrDefault().gameObject;
+            var found = allKids.Where(k => k.gameObject.name == name).FirstOrDefault();
+            if (found == null)
+            {
+                Debug.LogError("SpawnObject: no child named 'Spawn' found");
+                return;
+            }
+            spawnPoint = found.gameObject;
 
         }
 

@@ -118,7 +118,9 @@ public class NavMeshAgentTarget : MonoBehaviour
     void Update()
     {
         duration += Time.deltaTime; // Update timer
-        navMeshAgent.destination = movePositionTransform.position;
+        // movePositionTransform is only assigned once the agent starts moving
+        if (movePositionTransform != null)
+            navMeshAgent.destination = movePositionTransform.position;
         animator.SetBool("Walking", navMeshAgent.velocity.magnitude > 0.1);
     }
 }

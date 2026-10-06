@@ -26,7 +26,8 @@ public class RealtimeVisemeSync : RealtimeComponent<RealtimeVisemeModel>
 
     public void Reset()
     {
-        foreach (KeyValuePair<uint, RealtimeGenericFloatValueModel> entry in model.entries)
+        // Snapshot keys: removing entries while enumerating the dictionary throws
+        foreach (KeyValuePair<uint, RealtimeGenericFloatValueModel> entry in model.entries.ToArray())
         {
             model.entries.Remove(entry.Key);
         }

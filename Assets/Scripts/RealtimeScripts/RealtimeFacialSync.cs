@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using Normal.Realtime;
 using Normal.Realtime.Serialization;
@@ -9,14 +10,11 @@ public class RealtimeFacialSync : RealtimeComponent<RealtimeFacialModel>
 
     public void Reset()
     {
-        foreach (KeyValuePair<uint, RealtimeGenericFloatValueModel> entry in model.entries)
-        {
+        // Snapshot keys: removing entries while enumerating the dictionary throws
+        foreach (KeyValuePair<uint, RealtimeGenericFloatValueModel> entry in model.entries.ToArray())
             model.entries.Remove(entry.Key);
-        }
-        foreach (KeyValuePair<uint, RealtimeGenericFloatValueModel> entry in model.entries)
-        {
+        foreach (KeyValuePair<uint, RealtimeGenericFloatValueModel> entry in model.eyeEntries.ToArray())
             model.eyeEntries.Remove(entry.Key);
-        }
     }
     public RealtimeFacialModel GetModel()
     {

@@ -3,7 +3,6 @@ using Unity.XR.PXR;
 using UnityEngine.XR;
 using TMPro;
 using UnityEngine.XR.Interaction.Toolkit.Inputs;
-using DG.Tweening;
 using System.Collections;
 
 public class EyeTrackingManager : MonoBehaviour
@@ -11,16 +10,8 @@ public class EyeTrackingManager : MonoBehaviour
     public Transform Origin;
     public GameObject SpotLight;
     public Transform gazePoint;
-    private Vector3 combineEyeGazeVector;
-    private Vector3 combineEyeGazeOriginOffset;
-    private Vector3 combineEyeGazeOrigin;
     private Matrix4x4 headPoseMatrix;
     private Matrix4x4 originPoseMatrix;
-
-    private Vector3 combineEyeGazeVectorInWorldSpace;
-    private Vector3 combineEyeGazeOriginInWorldSpace;
-
-    private Vector2 primary2DAxis;
 
     private RaycastHit hitinfo;
 
@@ -43,9 +34,6 @@ public class EyeTrackingManager : MonoBehaviour
     {
         if (Origin == null) Origin = GameObject.Find("XR Origin").transform;
         if (gazePoint == null) gazePoint = GameObject.Find("gazePoint").transform;
-        combineEyeGazeOriginOffset = Vector3.zero;
-        combineEyeGazeVector = Vector3.zero;
-        combineEyeGazeOrigin = Vector3.zero;
         originPoseMatrix = Origin.localToWorldMatrix;
         trackingState = (TrackingStateCode)PXR_MotionTracking.WantEyeTrackingService();
         // Query if the current device supports eye tracking
@@ -67,26 +55,25 @@ public class EyeTrackingManager : MonoBehaviour
             {
                 matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, Vector3.one);
             }
-            bool result = PXR_EyeTracking.GetCombineEyeGazePoint(out Vector3 Origin) && PXR_EyeTracking.GetCombineEyeGazeVector(out Vector3 Direction);
-            PXR_EyeTracking.GetCombineEyeGazePoint(out Origin);
-            PXR_EyeTracking.GetCombineEyeGazeVector(out Direction);
-            var OriginOffset = matrix.MultiplyPoint(Origin);
-            var DirectionOffset = matrix.MultiplyVector(Direction);
-            if (result)
+            // Single combined query; only use the values when the device reports them as valid
+            if (PXR_EyeTracking.GetCombineEyeGazePoint(out Vector3 gazeOrigin) &&
+                PXR_EyeTracking.GetCombineEyeGazeVector(out Vector3 gazeDirection))
             {
-                Ray ray = new Ray(OriginOffset, DirectionOffset);
-                RaycastHit hit;
-                if (Physics.Raycast(ray, out hit, 20))
+                var originOffset = matrix.MultiplyPoint(gazeOrigin);
+                var directionOffset = matrix.MultiplyVector(gazeDirection);
+
+                Ray ray = new Ray(originOffset, directionOffset);
+                if (Physics.Raycast(ray, out RaycastHit hit, 20))
                 {
                     if (UseGazeDot) gazePoint.gameObject.SetActive(true);
-                    gazePoint.DOMove(hit.point, Time.deltaTime).SetEase(Ease.Linear);
+                    gazePoint.position = hit.point;
                 }
                 else
                 {
                     gazePoint.gameObject.SetActive(false);
                 }
                 // Event provider for logging, etc.
-                OnEyeTrackingEvent?.Invoke(OriginOffset, DirectionOffset, hit);
+                OnEyeTrackingEvent?.Invoke(originOffset, directionOffset, hit);
             }
             yield return new WaitForSeconds(stepTime);
         }

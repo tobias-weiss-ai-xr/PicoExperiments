@@ -1,8 +1,8 @@
-using UnityEditor;
 using UnityEngine;
 
 
 #if UNITY_EDITOR
+using UnityEditor;
 [CustomEditor(typeof(RealtimeGenericDictTest))]
 [CanEditMultipleObjects]
 public class RealtimeGenericDictTestEditor : Editor
