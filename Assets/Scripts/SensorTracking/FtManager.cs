@@ -188,22 +188,26 @@ public unsafe class FtManager : MonoBehaviour
             {
                 texts[i].text = $"{blendShapeList[i]}\n{(int)(faceTrackingInfo.blendShapeWeight[i] * 120)}";
 
+                // populate payload once per frame so SendValues doesn't send zeros
+                blendShapeWeights[i] = faceTrackingInfo.blendShapeWeight[i];
+
                 if (indexList[i] >= 0)
                 {
                     head.SetBlendShapeWeight(indexList[i], 100 * faceTrackingInfo.blendShapeWeight[i]);
                 }
 
                 // tongueBlendShape.SetBlendShapeWeight(tongueIndex, 100 * faceTrackingData.blendShapeWeight[51]);
-
-                leftEyeExample.SetBlendShapeWeight(leftLookUpIndex, 100 * faceTrackingInfo.blendShapeWeight[31]);
-                leftEyeExample.SetBlendShapeWeight(leftLookDownIndex, 100 * faceTrackingInfo.blendShapeWeight[0]);
-                leftEyeExample.SetBlendShapeWeight(leftLookInIndex, 100 * faceTrackingInfo.blendShapeWeight[2]);
-                leftEyeExample.SetBlendShapeWeight(leftLookOutIndex, 100 * faceTrackingInfo.blendShapeWeight[44]);
-                rightEyeExample.SetBlendShapeWeight(rightLookUpIndex, 100 * faceTrackingInfo.blendShapeWeight[35]);
-                rightEyeExample.SetBlendShapeWeight(rightLookDownIndex, 100 * faceTrackingInfo.blendShapeWeight[12]);
-                rightEyeExample.SetBlendShapeWeight(rightLookInIndex, 100 * faceTrackingInfo.blendShapeWeight[11]);
-                rightEyeExample.SetBlendShapeWeight(rightLookOutIndex, 100 * faceTrackingInfo.blendShapeWeight[45]);
             }
+
+            // Eye blendshapes use fixed indices: set once per frame, not once per blendshape
+            leftEyeExample.SetBlendShapeWeight(leftLookUpIndex, 100 * faceTrackingInfo.blendShapeWeight[31]);
+            leftEyeExample.SetBlendShapeWeight(leftLookDownIndex, 100 * faceTrackingInfo.blendShapeWeight[0]);
+            leftEyeExample.SetBlendShapeWeight(leftLookInIndex, 100 * faceTrackingInfo.blendShapeWeight[2]);
+            leftEyeExample.SetBlendShapeWeight(leftLookOutIndex, 100 * faceTrackingInfo.blendShapeWeight[44]);
+            rightEyeExample.SetBlendShapeWeight(rightLookUpIndex, 100 * faceTrackingInfo.blendShapeWeight[35]);
+            rightEyeExample.SetBlendShapeWeight(rightLookDownIndex, 100 * faceTrackingInfo.blendShapeWeight[12]);
+            rightEyeExample.SetBlendShapeWeight(rightLookInIndex, 100 * faceTrackingInfo.blendShapeWeight[11]);
+            rightEyeExample.SetBlendShapeWeight(rightLookOutIndex, 100 * faceTrackingInfo.blendShapeWeight[45]);
         }
     }
     public void SendValues(string state)
@@ -219,12 +223,12 @@ public unsafe class FtManager : MonoBehaviour
         if (p.State == null)
         {
             if (DebugLogging) Debug.Log("State missing");
-            yield return 0;
+            yield break;
         }
         if (p.Weights == null)
         {
             if (DebugLogging) Debug.Log("Weights missing");
-            yield return 0;
+            yield break;
         }
 
 

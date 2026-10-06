@@ -25,6 +25,7 @@ public class GazeEventDetection : MonoBehaviour
     public bool logging = false;
     private StreamWriter _writer = null;
     private string[] _logData = new string[6];
+    private int _flushCounter;
     private static readonly string[] _columnNames = { "CaptureTimestamp", "LogTime", "EventType", "DurationInSec", "Velocity", "GazeTarget" };
     [Header("Default path is Recordings in application folder.")]
     [SerializeField] private bool _useCustomLogPath = false;
@@ -248,7 +249,7 @@ public class GazeEventDetection : MonoBehaviour
                 {
                     currentGazeEvent.start = lastGazeEvent.start;
                     currentGazeEvent.duration += lastGazeEvent.duration;
-                    currentGazeEvent.velocityList.Concat(lastGazeEvent.velocityList);
+                    currentGazeEvent.velocityList.AddRange(lastGazeEvent.velocityList);
                     _eventList.RemoveAt(_eventList.Count - 1);
                 }
             }
@@ -260,10 +261,10 @@ public class GazeEventDetection : MonoBehaviour
 
     private void ProcessEventBacklog()
     {
-        for (int i = 0; i < gazeEventBacklog.eventBacklog.Count; i++)
+        // iterate backwards so removing an entry can't skip the next one
+        for (int i = gazeEventBacklog.eventBacklog.Count - 1; i >= 0; i--)
         {
-            GazeEvent g = gazeEventBacklog.eventBacklog[i];
-            if ((DateTime.Now - g.logTime).TotalSeconds > backlogDelay)
+            if ((DateTime.Now - gazeEventBacklog.eventBacklog[i].logTime).TotalSeconds > backlogDelay)
                 gazeEventBacklog.eventBacklog.RemoveAt(i);
         }
     }
@@ -296,6 +297,11 @@ public class GazeEventDetection : MonoBehaviour
             line += values[i] + (i == (values.Length - 1) ? "" : ";"); // Do not add semicolon to last data string
         }
         _writer.WriteLine(line);
+        if (++_flushCounter > 64)
+        {
+            _writer.Flush();
+            _flushCounter = 0;
+        }
     }
 
     public void StartLogging()
