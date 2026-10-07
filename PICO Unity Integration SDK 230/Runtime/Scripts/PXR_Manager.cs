@@ -205,7 +205,7 @@ namespace Unity.XR.PXR
             {
                 QualitySettings.antiAliasing = recommendedAntiAliasingLevel;
                 List<XRDisplaySubsystem> displaySubsystems = new List<XRDisplaySubsystem>();
-                SubsystemManager.GetInstances(displaySubsystems);
+                SubsystemManager.GetSubsystems(displaySubsystems);
 
                 if (displaySubsystems.Count > 0)
                 {
@@ -366,7 +366,7 @@ namespace Unity.XR.PXR
 
             if (openMRC)
             {
-                if (GraphicsSettings.renderPipelineAsset != null)
+                if (GraphicsSettings.defaultRenderPipeline != null)
                 {
                     RenderPipelineManager.beginFrameRendering += BeginRendering;
                     RenderPipelineManager.endFrameRendering += EndRendering;
@@ -776,7 +776,7 @@ namespace Unity.XR.PXR
 
             if (openMRC)
             {
-                if (GraphicsSettings.renderPipelineAsset != null)
+                if (GraphicsSettings.defaultRenderPipeline != null)
                 {
                     RenderPipelineManager.beginFrameRendering -= BeginRendering;
                     RenderPipelineManager.endFrameRendering -= EndRendering;

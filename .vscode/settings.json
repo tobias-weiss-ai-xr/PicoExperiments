@@ -52,6 +52,6 @@
         "Temp/": true
     },
     "git.ignoreLimitWarning": true,
-    "dotnet.defaultSolution": "PicoExperiments.sln",
+    "dotnet.defaultSolution": "PicoExperiments.slnx",
     "dotnet.preferCSharpExtension": true
 }
