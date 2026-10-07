@@ -17,7 +17,22 @@ It contains following demos:
 - Supermarket
 ![img/supermarket-agent.png](img/supermarket-agent.png)
 - Immersive VR questionnaire
+- Feature-map raycast AoI demo (`Assets/Scenes/ProductSpawnV2.unity`)
 - and more...
+
+## Feature-Map Raycast AoI Demo
+
+A head-mounted-display raycast demo that does **not** require eye tracking
+(scene: `Assets/Scenes/ProductSpawnV2.unity`).
+
+- `FeatureMapRaycaster.cs` casts a ray from the camera root (`PlayerCameraRoot`, 20 m) each frame.
+- Hits on objects using the `Universal Render Pipeline/FeatureMap` shader (`Assets/Scripts/FeatureMap.shader`)
+  are resolved to a texel in the material's `_FeatureMap` texture. The texel color encodes the
+  area of interest: red = *Details*, green = *Advertisement*, blue = *Logo*.
+- `FeatureMapDisplay.cs` subscribes to the `OnFeatureMapColor` event and shows the label on a TMP text.
+  Hook a CSV logger onto the same event to record AoI dwell times.
+- `FeatureMapSpawner.cs` instantiates the demo box (`Resources/FeatureMapDemo/DemoBox`) and assigns the
+  feature map at runtime; the texture needs *Read/Write Enabled* (already set in its `.meta`).
 
 ## Setup
 - Open Unity and select Android Platform to build the APK
