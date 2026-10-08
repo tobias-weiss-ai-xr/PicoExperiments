@@ -27,7 +27,7 @@ namespace Normal.Realtime
 
         void Awake()
         {
-            _realtime = FindObjectOfType<Realtime>();
+            _realtime = FindFirstObjectByType<Realtime>();
             _realtime.didConnectToRoom += DidConnectToRoom;
 
             if (_localPlayer == null)

@@ -1,7 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.XR.Interaction.Toolkit;
+
 
 public class DisableDirectInteractor : MonoBehaviour
 {
@@ -19,7 +19,7 @@ public class DisableDirectInteractor : MonoBehaviour
     {
         if (savefile.avatarInput != AvatarInput.VARJO)
         {
-            this.GetComponent<XRDirectInteractor>().enabled = false;
+            this.GetComponent<UnityEngine.XR.Interaction.Toolkit.Interactors.XRDirectInteractor>().enabled = false;
         }
     }
 }

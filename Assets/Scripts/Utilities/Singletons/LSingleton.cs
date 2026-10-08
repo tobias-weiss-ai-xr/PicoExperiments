@@ -20,7 +20,7 @@ using System;
 			{
 				if (_instance == null)
 				{
-					_instance = FindObjectOfType<T> ();
+					_instance = FindFirstObjectByType<T> ();
 					if (_instance == null)
 					{
 						GameObject obj = new GameObject ();
@@ -42,7 +42,7 @@ using System;
 
 			DontDestroyOnLoad (this.gameObject);
 			// we check for existing objects of the same type
-			T[] check = FindObjectsOfType<T>();
+			T[] check = FindObjectsByType<T>(FindObjectsSortMode.None);
 			foreach (T searched in check)
 			{
 				if (searched!=this)

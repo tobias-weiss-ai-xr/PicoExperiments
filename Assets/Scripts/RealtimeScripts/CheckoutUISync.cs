@@ -27,8 +27,9 @@ public class CheckoutUISync : RealtimeComponent<RealtimeCheckoutModel>
         if (!value || purchaseButton == null)
             return;
         purchaseButton.onClick.Invoke();
-        // Consume the press so it is edge-triggered and doesn't re-fire for late joiners
-        if (model.hasAuthority)
+        // Consume the press so it is edge-triggered and doesn't re-fire for late joiners.
+        // Only reset when we can authoritatively write: unowned (anyone may write) or owned by us.
+        if (model.ownerID == -1 || (realtime != null && model.ownerID == realtime.clientID))
             model.buttonPressed = false;
     }
 

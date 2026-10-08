@@ -2,14 +2,14 @@
 using UnityEngine.Events;
 using UnityEngine.XR.Interaction.Toolkit;
 
-public class WorldButton : XRBaseInteractable
+public class WorldButton : UnityEngine.XR.Interaction.Toolkit.Interactables.XRBaseInteractable
 {
     public bool interactable = true;
     public float epsilonInPosition = 0.01f;
     private float yMin = 0, yMax = 0;
     private float clickGuard = 0;
     private float previousHandHeight = 0.0f;
-    XRBaseInteractor m_Interactor = null;
+    UnityEngine.XR.Interaction.Toolkit.Interactors.XRBaseInteractor m_Interactor = null;
 
 
     public UnityEvent OnPress = null;
@@ -42,7 +42,7 @@ public class WorldButton : XRBaseInteractable
 
     private void StartPress(BaseInteractionEventArgs args)
     {
-        m_Interactor = (XRBaseInteractor)args.interactorObject;
+        m_Interactor = (UnityEngine.XR.Interaction.Toolkit.Interactors.XRBaseInteractor)args.interactorObject;
         previousHandHeight = GetLocalYPosition(m_Interactor.transform.parent.position);
     }
 

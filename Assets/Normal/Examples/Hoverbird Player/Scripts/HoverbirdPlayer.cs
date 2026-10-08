@@ -114,7 +114,7 @@ namespace Normal.Realtime.Examples {
 
         private void MovePlayer() {
             // Start with the current velocity
-            Vector3 velocity = _rigidbody.velocity;
+            Vector3 velocity = _rigidbody.linearVelocity;
 
             // Smoothly animate towards the target movement velocity
             _movement = Vector3.Lerp(_movement, _targetMovement, Time.fixedDeltaTime * 5.0f);
@@ -136,7 +136,7 @@ namespace Normal.Realtime.Examples {
                 _jumping = false;
 
             // Set the velocity on the rigidbody
-            _rigidbody.velocity = velocity;
+            _rigidbody.linearVelocity = velocity;
         }
 
         // Rotate the character to face the direction we're moving. Lean towards the target movement direction.
@@ -161,7 +161,7 @@ namespace Normal.Realtime.Examples {
             // Rotate to face the direction of travel if we're moving forward
             Vector3 targetCharacterLookForwardVector = characterLookForwardVector;
             if (GetRigidbodyForwardVelocity(_rigidbody) >= 2.0f)
-                targetCharacterLookForwardVector = _rigidbody.velocity.normalized;
+                targetCharacterLookForwardVector = _rigidbody.linearVelocity.normalized;
 
             // Compose the target character rotation from the target look direction + target lean direction
             Quaternion targetRotation = Quaternion.LookRotation(targetCharacterLookForwardVector, leanRotation * Vector3.up);
@@ -179,7 +179,7 @@ namespace Normal.Realtime.Examples {
 
         // Get the rigidbody velocity along the ground plane
         private static float GetRigidbodyForwardVelocity(Rigidbody rigidbody) {
-            Vector3 forwardVelocity = rigidbody.velocity;
+            Vector3 forwardVelocity = rigidbody.linearVelocity;
             forwardVelocity.y = 0.0f;
             return forwardVelocity.magnitude;
         }

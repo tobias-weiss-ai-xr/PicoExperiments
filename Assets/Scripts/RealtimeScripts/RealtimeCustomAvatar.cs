@@ -8,7 +8,7 @@ using Normal.Utility;
 
 namespace Custom.Normal
 {
-    [ExecutionOrder(-95)]
+    [DefaultExecutionOrder(-95)]
     public class RealtimeCustomAvatar : RealtimeComponent<RealtimeCustomAvatarModel>
     {
         // Local Player

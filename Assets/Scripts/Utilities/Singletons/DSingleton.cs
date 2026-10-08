@@ -17,7 +17,7 @@ using UnityEngine;
 			{
 				if (_instance == null)
 				{
-					_instance = FindObjectOfType<T> ();
+					_instance = FindFirstObjectByType<T> ();
 					if (_instance == null)
 					{
 						GameObject obj = new GameObject ();
