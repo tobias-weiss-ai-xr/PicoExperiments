@@ -24,11 +24,12 @@ public class CheckoutUISync : RealtimeComponent<RealtimeCheckoutModel>
 
     public void UpdateButtonPressed(RealtimeCheckoutModel model, bool value)
     {
-        //TODO: Update button
-        if (value)
-        {
-            purchaseButton.onClick.Invoke();
-        }
+        if (!value || purchaseButton == null)
+            return;
+        purchaseButton.onClick.Invoke();
+        // Consume the press so it is edge-triggered and doesn't re-fire for late joiners
+        if (model.hasAuthority)
+            model.buttonPressed = false;
     }
 
     protected override void OnRealtimeModelReplaced(RealtimeCheckoutModel previousModel, RealtimeCheckoutModel currentModel)
@@ -47,7 +48,7 @@ public class CheckoutUISync : RealtimeComponent<RealtimeCheckoutModel>
                 currentModel.buttonPressed = false;
                 currentModel.selectedIndex = purchaseDropdown.value;
             }
-            UpdateButtonPressed(currentModel, currentModel.buttonPressed);
+            // NOTE: buttonPressed is intentionally not replayed on join (edge-triggered press)
             UpdateDropdownIndex(currentModel, currentModel.selectedIndex);
             // Register for events so we'll know if the color changes later
             currentModel.selectedIndexDidChange += UpdateDropdownIndex;

@@ -46,6 +46,8 @@ public class GazeEventDetection : MonoBehaviour
     public class GazeEventBacklog
     {
         public List<GazeEvent> eventBacklog = new(); // Backlog for further eval of previous gaze events
+
+        public string Serialize() => JsonUtility.ToJson(this);
     }
 
     public float backlogDelay = 5.0f; // Time for events to remain in event list
@@ -53,15 +55,16 @@ public class GazeEventDetection : MonoBehaviour
 
     // Gaze event during and after post processing
     [Serializable]
+    // Fields, not properties: JsonUtility (backlog serialization for the classifier) only serializes public fields
     public class GazeEvent
     {
-        public EventType eventType { get; set; }
-        public long start { get; set; }
-        public DateTime logTime { get; set; }
-        public float duration { get; set; }
-        public float velocity { get; set; }
-        public List<float> velocityList { get; set; }
-        public string gazeTarget { get; set; }
+        public EventType eventType;
+        public long start;
+        public DateTime logTime;
+        public float duration;
+        public float velocity;
+        public List<float> velocityList;
+        public string gazeTarget;
 
         public GazeEvent()
         {
@@ -107,19 +110,34 @@ public class GazeEventDetection : MonoBehaviour
 
     private void Start()
     {
-        if (TryGetComponent<EyeTrackingManager>(out _eyeTracking))
+        if (!TryGetComponent<EyeTrackingManager>(out _eyeTracking) && GameObject.Find("EyeTracking") != null)
+            _eyeTracking = GameObject.Find("EyeTracking").GetComponent<EyeTrackingManager>();
+
+        if (_eyeTracking != null)
         {
-            // _eyeTracking.OnGazeRecordProcessing += QueueGazeRecord;
+            // Feed the event detector from the live per-sample eye tracking event
+            _eyeTracking.OnEyeTrackingEvent += QueueGazeRecordFromETEvent;
             StartLogging();
+        }
+        else
+        {
+            Debug.LogWarning("GazeEventDetection: no EyeTrackingManager found; running without gaze input.");
         }
         InvokeRepeating("SlowUpdate", 0.0f, slowUpdateRate);
     }
 
-    // private void ReceiveEyeTrackingSample(object sender, EyeTracking.OnEyeTrackingDataArgs e)
-    // {
-    //     GazeRecordQueue.Enqueue(e.gazeRecord);
-    // }
-    private void QueueGazeRecord(GazeRecord gazeRecord) => _gazeRecordQueue.Enqueue(gazeRecord);
+    private void QueueGazeRecordFromETEvent(Vector3 origin, Vector3 direction, RaycastHit hit)
+    {
+        _gazeRecordQueue.Enqueue(new GazeRecord
+        {
+            captureTime = DateTime.Now.Ticks * 100L, // ticks are 100ns; TimeDeltaInSec expects ns
+            logDate = DateTime.Now,
+            valid = true,
+            hmdPosition = origin,
+            gazeDirection = direction,
+            gazeTarget = hit.transform == null ? "" : hit.transform.name
+        });
+    }
 
 
     private void SlowUpdate()
@@ -350,6 +368,8 @@ public class GazeEventDetection : MonoBehaviour
 
     private void OnDestroy()
     {
+        if (_eyeTracking != null)
+            _eyeTracking.OnEyeTrackingEvent -= QueueGazeRecordFromETEvent;
         StopLogging();
     }
 }

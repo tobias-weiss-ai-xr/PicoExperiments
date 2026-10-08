@@ -1,11 +1,6 @@
-using System.Security.Cryptography;
-using System.Runtime.Serialization;
-using System.Numerics;
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 public class GazeEventClassifierClient : MonoBehaviour
 {
@@ -18,7 +13,6 @@ public class GazeEventClassifierClient : MonoBehaviour
 
     // Socket
     public float sendInterval = 5f;
-    public float updateInterval = 1f;
 
     // Door Open Machanism
     private int _doorOpenRequestCounter;
@@ -26,42 +20,32 @@ public class GazeEventClassifierClient : MonoBehaviour
 
     void Start()
     {
-        _savefile = GameObject.Find("SavefileManager").GetComponent<Savefile>();
+        _savefile = GameObject.Find("SavefileManager")?.GetComponent<Savefile>();
         this.EnsureObjectReference(ref _door, "doors 1");
 
         _udpSocket = GetComponent<UdpSocket>();
 
-        if (_savefile.avatarInput == AvatarInput.VARJO)
+        if (_savefile != null && _savefile.avatarInput == AvatarInput.VARJO && GameObject.Find("XR Origin") != null)
             _gazeEventDetection = GameObject.Find("XR Origin").GetComponent<GazeEventDetection>();
 
-        // demo
-        _gazeEventDetection = gameObject.AddComponent<GazeEventDetection>();
+        if (_gazeEventDetection == null)
+        {
+            // demo fallback: run detection locally without the VR rig
+            _gazeEventDetection = gameObject.AddComponent<GazeEventDetection>();
+            Debug.LogWarning("GazeEventClassifierClient: no GazeEventDetection on XR Origin; using a local component.");
+        }
 
         _udpSocket.OnRx += ProcessData;
 
-        StartCoroutine(UpdateEventBacklog());
         StartCoroutine(SendDataCoroutine());
     }
 
     void Update()
     {
-        if (_doorOpenFlag && _door.activeSelf)
+        if (_doorOpenFlag && _door != null && _door.activeSelf)
         {
             _door.SetActive(false);
             Debug.Log("Doors opened by gaze event classifier.");
-        }
-    }
-
-    IEnumerator UpdateEventBacklog()
-    {
-        while (true)
-        {
-            //demo 
-            //emits one empty gaze event every second
-            GazeEventDetection.GazeEvent g = new GazeEventDetection.GazeEvent();
-            _gazeEventDetection.gazeEventBacklog.eventBacklog.Add(g);
-            // print(_gazeEventDetection.gazeEventBacklog.Serialize());
-            yield return new WaitForSeconds(updateInterval);
         }
     }
 
@@ -70,16 +54,14 @@ public class GazeEventClassifierClient : MonoBehaviour
     {
         while (true)
         {
-            // _udpSocket.SendData(_gazeEventDetection.gazeEventBacklog.Serialize().ToString());
+            _udpSocket.SendData(_gazeEventDetection.gazeEventBacklog.Serialize());
             yield return new WaitForSeconds(sendInterval);
         }
     }
     private void ProcessData(string data)
     {
-        // print("> > " + data);
-
         // Count up or reset open counter
-        if (int.Parse(data) == 1)
+        if (int.TryParse(data.Trim(), out int value) && value == 1)
             _doorOpenRequestCounter++;
         else
             _doorOpenRequestCounter = 0;

@@ -14,28 +14,39 @@ public class RealtimeDashboardUpdate3DPrinter : MonoBehaviour
     void Start()
     {
         eyeTracking = GetComponent<EyeTrackingManager>();
-        dashboardModel = GameObject.Find("Dashboard").GetComponent<RealtimeDashboard3DPrinter>();
-        // eyeTracking.OnGazeRecordProcessing += AnalyzeGazeRecord;
+        if (eyeTracking == null && GameObject.Find("EyeTracking") != null)
+            eyeTracking = GameObject.Find("EyeTracking").GetComponent<EyeTrackingManager>();
+        dashboardModel = GameObject.Find("Dashboard")?.GetComponent<RealtimeDashboard3DPrinter>();
+
+        if (eyeTracking != null && dashboardModel != null)
+            eyeTracking.OnEyeTrackingEvent += AnalyzeGazeHit;
+        else
+            Debug.LogWarning("RealtimeDashboardUpdate3DPrinter: EyeTrackingManager or Dashboard not found; analysis disabled.");
     }
 
-    private void AnalyzeGazeRecord(GazeEventDetection.GazeRecord gazeRecord)
+    // Runs per eye-tracking sample (24 Hz). The old per-record event never existed,
+    // so analysis consumes the live gaze event directly.
+    private void AnalyzeGazeHit(Vector3 origin, Vector3 direction, RaycastHit hit)
     {
-        if (gazeRecord.gazeTarget.Contains("Explorer"))
+        if (hit.transform == null)
+            return;
+        string gazeTarget = hit.transform.name;
+        if (gazeTarget.Contains("Explorer"))
         {
             valueExplorer += 0.005f;
             dashboardModel.SetValueExplorer(valueExplorer);
         }
-        if (gazeRecord.gazeTarget.Contains("Solid"))
+        else if (gazeTarget.Contains("Solid"))
         {
             valueSolid += 0.005f;
             dashboardModel.SetValueSolid(valueSolid);
         }
-        if (gazeRecord.gazeTarget.Contains("Plus"))
+        else if (gazeTarget.Contains("Plus"))
         {
             valuePlus += 0.005f;
             dashboardModel.SetValuePlus(valuePlus);
         }
-        if (gazeRecord.gazeTarget.Contains("Pro"))
+        else if (gazeTarget.Contains("Pro"))
         {
             valuePro += 0.005f;
             dashboardModel.SetValuePro(valuePro);

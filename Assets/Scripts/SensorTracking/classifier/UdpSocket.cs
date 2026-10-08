@@ -20,9 +20,12 @@ public class UdpSocket : MonoBehaviour
     UdpClient client;
     IPEndPoint remoteEndPoint;
     Thread receiveThread; // Receiving Thread
+    private volatile bool _receiving;
 
     public void SendData(string message) // Use to send data to Python
     {
+        if (client == null)
+            return;
         try
         {
             byte[] data = Encoding.UTF8.GetBytes(message);
@@ -44,6 +47,7 @@ public class UdpSocket : MonoBehaviour
 
         // local endpoint define (where messages are received)
         // Create a new thread for reception of incoming messages
+        _receiving = true;
         receiveThread = new Thread(new ThreadStart(ReceiveData));
         receiveThread.IsBackground = true;
         receiveThread.Start();
@@ -55,7 +59,7 @@ public class UdpSocket : MonoBehaviour
     // Receive data, update packets received
     private void ReceiveData()
     {
-        while (true)
+        while (_receiving)
         {
             try
             {
@@ -64,9 +68,10 @@ public class UdpSocket : MonoBehaviour
                 string text = Encoding.UTF8.GetString(data);
                 OnRx?.Invoke(text);
             }
-            catch (Exception err)
+            catch (Exception)
             {
-                print(err.ToString());
+                // socket was closed on shutdown; exit the loop
+                break;
             }
         }
     }
@@ -74,10 +79,13 @@ public class UdpSocket : MonoBehaviour
     //Prevent crashes - close clients and threads properly!
     void OnDisable()
     {
-        if (receiveThread != null)
-            receiveThread.Abort();
-
-        client.Close();
+        _receiving = false;
+        // Close unblocks the blocking Receive; the thread exits on its next loop check
+        if (client != null)
+        {
+            client.Close();
+            client = null;
+        }
     }
 
 }
