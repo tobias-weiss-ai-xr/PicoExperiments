@@ -57,19 +57,24 @@ Set `participantId` on the raycaster component per participant.
 | File | Columns | Content |
 |---|---|---|
 | `…-aoi.csv` | `StartEpochMs;LogTime;DurationInSec;Area;HitObject` | one row per area interval, transitions only |
-| `…-aoi-raw.csv` | `EpochMs;LogTime;Area` | committed area sampled at 10 Hz for post-hoc re-analysis |
+| `…-aoi-raw.csv` | `EpochMs;LogTime;Area;HitObject;PointX;PointY;PointZ;U;V` | committed area sampled at 10 Hz with hit geometry for post-hoc surface mapping |
 | `…-aoi-fixations.csv` | `StartEpochMs;EndEpochMs;DurationInSec;Area` | fixations: gaze stable (< 50°/s) ≥ 100 ms on an area |
 
 Signal processing, tuned via inspector fields on the raycaster:
 
 - **Debounce** (`minDwell`, 100 ms): an area must hold this long before a switch commits —
   kills texel-noise flicker at area borders.
-- **Border hysteresis** (`probeSpread`, 0.03): before committing, a 5-ray cross (center + 4 probes)
-  must confirm the new area with ≥ 4/5 votes; otherwise the dwell hold restarts. A ray straddling
-  a border splits its probes and never flips the committed area. Rationale and tuning:
-  `docs/specs/2026-10-08-aoi-tracking-design.md`.
-- **Fixations** (`saccadeVelocity` 50°/s, `minFixationDuration` 100 ms): angular-velocity saccade
-  detection splits fixations; sub-threshold sweeps are discarded.
+- **Foveal cone voting** (`foveaRadius`, 1°): before committing, a Gaussian-weighted cone of
+  17 rays (center + 8 at 0.5 r + 8 at r) must confirm the new area with ≥ 75 % of total weight;
+  otherwise the dwell hold restarts. A ray straddling a border splits the cone and never flips
+  the committed area. View-cone-sampling approach after current VR gaze-methodology literature —
+  rationale and tuning: `docs/specs/2026-10-08-aoi-tracking-design.md`.
+- **Fixations** (`saccadeVelocity` 30°/s, `minFixationDuration` 100 ms): angular-velocity saccade
+  detection splits fixations; sub-threshold sweeps are discarded. 30°/s is the validated I-VT
+  threshold for VR (20–35°/s range, IEEE VRW 2025).
+
+Offline analysis (dwell/fixation summaries, transition matrix, UV gaze heatmap):
+`python analysis/aoi_report.py Recordings/<session-prefix>`.
 
 Timestamps are Unix epoch ms (alignable with the eye-tracking CSVs) plus local wall-clock strings.
 Rows are flushed per write. Design rationale: `docs/specs/2026-10-08-aoi-tracking-design.md`.

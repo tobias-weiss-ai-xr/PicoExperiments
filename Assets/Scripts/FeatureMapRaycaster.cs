@@ -14,13 +14,13 @@ public class FeatureMapRaycaster : MonoBehaviour
     [SerializeField] string participantId = "P01";
     [Tooltip("Seconds a new area must stay stable before the switch commits")]
     [SerializeField] float minDwell = 0.1f;
-    [Tooltip("Angular spread of the hysteresis probe cross (fraction of view direction)")]
-    [SerializeField] float probeSpread = 0.03f;
+    [Tooltip("Half-angle of the foveal sampling cone in degrees (Gaussian-weighted switch voting)")]
+    [SerializeField] float foveaRadius = 1.0f;
     [Tooltip("Raw trace sample rate in Hz")]
     [SerializeField] float rawSampleRate = 10f;
     [Header("Fixation detection")]
-    [Tooltip("Angular speed (deg/s) above which the ray counts as a saccade")]
-    [SerializeField] float saccadeVelocity = 50f;
+    [Tooltip("Angular speed (deg/s) above which the ray counts as a saccade (validated range for VR: 20-35")]
+    [SerializeField] float saccadeVelocity = 30f;
     [Tooltip("Minimum fixation length in seconds to be logged")]
     [SerializeField] float minFixationDuration = 0.1f;
 
@@ -88,7 +88,7 @@ public class FeatureMapRaycaster : MonoBehaviour
             _currentStartMs = NowMs();
 
             _rawWriter = new StreamWriter(UniquePath(logPath, baseName + "-raw.csv"));
-            _rawWriter.WriteLine("EpochMs;LogTime;Area");
+            _rawWriter.WriteLine("EpochMs;LogTime;Area;HitObject;PointX;PointY;PointZ;U;V");
             _nextRawSampleMs = NowMs();
         }
         if (fixationLogging)
@@ -126,15 +126,18 @@ public class FeatureMapRaycaster : MonoBehaviour
     {
         long nowMs = NowMs();
 
-        string area = ClassifyRay(cameraTransform.position, cameraTransform.TransformDirection(Vector3.forward), out string hitObject, out Color color);
+        string area = ClassifyRay(cameraTransform.position, cameraTransform.TransformDirection(Vector3.forward), out RayHit hit, out Color color);
         if (color != Color.clear)
             OnFeatureMapColor?.Invoke(color);
         Debug.DrawRay(cameraTransform.position, cameraTransform.TransformDirection(Vector3.forward) * 20f, area == "None" ? Color.green : Color.red);
-        ObserveArea(area, nowMs, hitObject);
+        ObserveArea(area, nowMs, hit.hitObject);
 
         if (_rawWriter != null && nowMs >= _nextRawSampleMs)
         {
-            _rawWriter.WriteLine($"{nowMs};{LogTime()};{_currentAoi}");
+            string p = hit.point;
+            _rawWriter.WriteLine($"{nowMs};{LogTime()};{_currentAoi};{hit.hitObject};" +
+                $"{p.x.ToString("F2", CultureInfo.InvariantCulture)};{p.y.ToString("F2", CultureInfo.InvariantCulture)};{p.z.ToString("F2", CultureInfo.InvariantCulture)};" +
+                $"{hit.uv.x.ToString("F4", CultureInfo.InvariantCulture)};{hit.uv.y.ToString("F4", CultureInfo.InvariantCulture)}");
             _rawWriter.Flush();
             _nextRawSampleMs = nowMs + (long)(1000f / Mathf.Max(rawSampleRate, 0.01f));
         }
@@ -144,28 +147,36 @@ public class FeatureMapRaycaster : MonoBehaviour
     }
 
     // One raycast + feature map texel classification. color is Color.clear when no
-    // feature map surface was hit.
-    string ClassifyRay(Vector3 origin, Vector3 direction, out string hitObject, out Color color)
+    // feature map surface was hit. Geometry (hit point, uv) is carried in RayHit
+    // so the raw trace can log it for post-hoc surface mapping.
+    struct RayHit
+    {
+        public string hitObject;
+        public Vector3 point;
+        public Vector2 uv;
+    }
+
+    string ClassifyRay(Vector3 origin, Vector3 direction, out RayHit hit, out Color color)
     {
         color = Color.clear;
-        if (!Physics.Raycast(origin, direction, out RaycastHit hit, 20f))
-        {
-            hitObject = "";
+        hit = default;
+        if (!Physics.Raycast(origin, direction, out RaycastHit rayHit, 20f))
             return "None";
-        }
-        hitObject = hit.transform.name;
+        hit.hitObject = rayHit.transform.name;
+        hit.point = rayHit.point;
+        hit.uv = rayHit.textureCoord;
 
-        Renderer rend = hit.transform.GetComponent<Renderer>();
-        Collider collider = hit.collider;
+        Renderer rend = rayHit.transform.GetComponent<Renderer>();
+        Collider collider = rayHit.collider;
         if (rend == null || rend.sharedMaterial == null ||
             rend.sharedMaterial.shader.name != "Universal Render Pipeline/FeatureMap" || collider == null)
             return "None";
 
         Texture2D tex = rend.material.GetTexture("_FeatureMap") as Texture2D;
-        Vector2 uv = hit.textureCoord;
-        uv.x *= tex.width;
-        uv.y *= tex.height;
-        color = tex.GetPixel((int)uv.x, (int)uv.y);
+        Vector2 texel = rayHit.textureCoord;
+        texel.x *= tex.width;
+        texel.y *= tex.height;
+        color = tex.GetPixel((int)texel.x, (int)texel.y);
         return ClassifyAoi(color);
     }
 
@@ -185,12 +196,14 @@ public class FeatureMapRaycaster : MonoBehaviour
         }
     }
 
-    // Border hysteresis (Schmitt trigger): committing a switch requires a 5-ray
-    // cross (center + 4 probes) to agree on the new area. A ray straddling an
-    // area border splits its probes and never gathers 4/5 votes, so the
-    // Details<->Advertisement flip-flop seen on real sessions is suppressed.
-    // A failed vote restarts the dwell hold; genuine area entries pass 5/5 on
-    // the first attempt and switch with no extra latency.
+    // Foveal cone voting (view cone sampling, VCS): committing a switch requires
+    // a Gaussian-weighted ray bundle (center + 8 rays at 0.5r + 8 at r, r =
+    // foveaRadius) to agree on the new area with >= 75% of total weight. A ray
+    // straddling an area border splits the cone and stays below the ratio (the
+    // center ray's full weight makes 0.75, not 0.6, the smallest straddle-proof
+    // bar), so the Details<->Advertisement flip-flop seen on real sessions is
+    // suppressed. A failed vote restarts the dwell hold; a genuine area entry
+    // with one foveal radius of clearance commits on the first attempt.
     void VerifySwitch(string area, long nowMs)
     {
         Vector3 origin = cameraTransform.position;
@@ -198,19 +211,21 @@ public class FeatureMapRaycaster : MonoBehaviour
         Vector3 right = cameraTransform.TransformDirection(Vector3.right);
         Vector3 up = cameraTransform.TransformDirection(Vector3.up);
 
-        int votes = 0;
-        for (int i = 0; i < 5; i++)
+        float sigma = foveaRadius * 0.5f;
+        float totalWeight = 0f, agreeWeight = 0f;
+        for (int i = 0; i < 17; i++)
         {
-            Vector3 dir = fwd;
-            if (i == 1) dir = (fwd + right * probeSpread).normalized;
-            else if (i == 2) dir = (fwd - right * probeSpread).normalized;
-            else if (i == 3) dir = (fwd + up * probeSpread).normalized;
-            else if (i == 4) dir = (fwd - up * probeSpread).normalized;
+            float angle = i == 0 ? 0f : (i <= 8 ? foveaRadius * 0.5f : foveaRadius);
+            float phi = (i == 0 ? 0f : (i - 1) % 8) * Mathf.PI / 4f;
+            Vector3 dir = (fwd + (right * Mathf.Cos(phi) + up * Mathf.Sin(phi)) *
+                           Mathf.Tan(angle * Mathf.Deg2Rad)).normalized;
+            float w = Mathf.Exp(-(angle * angle) / (2f * sigma * sigma));
+            totalWeight += w;
             if (ClassifyRay(origin, dir, out _, out _) == area)
-                votes++;
+                agreeWeight += w;
         }
 
-        if (votes >= 4)
+        if (agreeWeight / totalWeight >= 0.75f)
             SwitchAoi(area, nowMs, _pendingHitObject);
         else
             _pendingSinceMs = nowMs; // border straddle: keep current area, retry after another dwell

@@ -65,3 +65,50 @@ angular size of the smallest area on screen.
 **Not done.** Ring-majority on every frame (5 rays/frame always) — unnecessary:
 verification only runs when a switch is already pending, so steady-state cost is
 one extra raycast every ~100 ms.
+
+## AoI v2: research alignment (added 2026-10-08, same day)
+
+Literature review of VR AoI/fixation methodology; three changes shipped, one
+tool added. The 5-ray cross hysteresis above is superseded by foveal cone
+voting; both are kept in git history.
+
+**A. Fixation threshold corrected.** `saccadeVelocity` 50 → **30 °/s**
+(inspector-tunable). Two 2025 validations of I-VT in VR with head rotation
+included in gaze velocity find the optimum at 20–35 °/s (means 25.7/30.3 °/s;
+IEEE VRW 2025 "Optimizing Velocity Thresholds for Fixation Detection in VR";
+Wageningen thesis, same study), consistent with Tobii's 30 °/s recommendation.
+50 °/s sat above the validated range and would over-merge fixations. The 100 ms
+minimum duration already matches Tobii defaults and Llanes-Jurado et al.
+
+**B. Foveal cone voting (view cone sampling).** The binary 5-ray cross is
+replaced by a Gaussian-weighted cone: center ray + 8 rays at 0.5·`foveaRadius`
++ 8 at `foveaRadius` (weights exp(−θ²/2σ²), σ = r/2). A switch commits at
+**≥ 75 %** of total weight, else the dwell hold restarts. Rationale:
+
+- Single-ray sampling is the documented weak point of VR gaze pipelines;
+  Gaussian ray bundles simulating the foveal receptive field are the current
+  fix (arXiv 2601.02721, "View Cone Sampling").
+- The 75 % bar is not arbitrary: with the center ray carrying full weight, a
+  symmetric straddle scores ≈ 0.68, so 0.6 would let borders commit. Sim-verified
+  (texel-grid port): straddle ≤ 0.68 rejected from both sides; ≥ 0.94 (center
+  genuinely inside, ~1 texel clearance) commits first try.
+
+Knob: `foveaRadius` in degrees (default 1.0) replaces `probeSpread`; larger =
+more clearance needed to switch, smaller = earlier commits.
+
+**C. Geometry in the raw trace.** Raw CSV columns extended to
+`EpochMs;LogTime;Area;HitObject;PointX;PointY;PointZ;U;V` (world hit point, UV
+on the hit surface; empty on miss). This is what post-hoc surface mapping
+needs — fixation-density heatmaps on the mesh, per-participant AOI re-mapping,
+replicable AOI reporting (PLUME surface mapping, arXiv 2601.07571; Hooge et al.
+2026, "The fundamentals of eye tracking part 6"). Pre-v2 recordings lack the
+columns; the analysis tool degrades gracefully.
+
+**D. Offline analysis tool.** `analysis/aoi_report.py` (stdlib + optional
+matplotlib): dwell/fixation summaries, area transition matrix, raw-trace rate
+and shares, UV gaze histogram as `<prefix>-heatmap.png`.
+
+**Still out of scope.** Dual raycaster for transparent surfaces and
+distance-segmented colliders (MDPI Appl. Sci. 12:1027 workflow); real-time
+surface attention accumulation; eye-tracking-based AOIs (this demo is
+head-raycast by design).
