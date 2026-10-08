@@ -45,6 +45,8 @@ public class RealtimeDoor : RealtimeComponent<RealtimeDoorModel>
     {
         gameObject.SetActive(!doorOpen);
         Debug.Log($"Door status changed to: {!doorOpen}");
+        if (doorIndicator == null || clientTextIndicator == null)
+            return;
         if (!doorOpen)
         {
             doorIndicator.GetComponent<TMP_Text>().text = "Door is closed!";
@@ -59,6 +61,11 @@ public class RealtimeDoor : RealtimeComponent<RealtimeDoorModel>
 
     public void ToggleDoor()
     {
+        if (model == null)
+        {
+            Debug.LogWarning("ToggleDoor called before the Realtime model is available; ignoring.");
+            return;
+        }
         model.open = !model.open;
     }
 }

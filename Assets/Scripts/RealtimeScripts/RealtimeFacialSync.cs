@@ -123,7 +123,7 @@ public class RealtimeFacialSync : RealtimeComponent<RealtimeFacialModel>
 
     public void SetGaze(Vector3 gazeDir)
     {
-        model.eyeGazeDirection += gazeDir;
+        model.eyeGazeDirection = gazeDir;
     }
 
     private void ValueAddedLip(RealtimeDictionary<RealtimeGenericFloatValueModel> dict, uint key, RealtimeGenericFloatValueModel model, bool remote)

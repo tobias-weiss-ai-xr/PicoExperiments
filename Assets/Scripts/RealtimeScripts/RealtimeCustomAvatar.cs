@@ -144,16 +144,6 @@ namespace Custom.Normal
             localPlayer = null;
         }
 
-        void FixedUpdate()
-        {
-            UpdateAvatarTransformsForLocalPlayer();
-        }
-
-        void Update()
-        {
-            UpdateAvatarTransformsForLocalPlayer();
-        }
-
         void LateUpdate()
         {
             UpdateAvatarTransformsForLocalPlayer();
@@ -262,21 +252,6 @@ namespace Custom.Normal
                 RealtimeTransform rightHandRealtimeTransform = _rightHand != null ? _rightHand.GetComponent<RealtimeTransform>() : null;
 
                 if (rootRealtimeTransform != null) rootRealtimeTransform.RequestOwnership();
-                if (headRealtimeTransform != null) headRealtimeTransform.RequestOwnership();
-                if (leftHandRealtimeTransform != null) leftHandRealtimeTransform.RequestOwnership();
-                if (rightHandRealtimeTransform != null) rightHandRealtimeTransform.RequestOwnership();
-                if (leftUpperArmRealtimeTransform != null) leftUpperArmRealtimeTransform.RequestOwnership();
-                if (rightUpperArmRealtimeTransform != null) rightUpperArmRealtimeTransform.RequestOwnership();
-                if (leftForeArmRealtimeTransform != null) leftForeArmRealtimeTransform.RequestOwnership();
-                if (rightForeArmRealtimeTransform != null) rightForeArmRealtimeTransform.RequestOwnership();
-                if (leftThighRealtimeTransform != null) leftThighRealtimeTransform.RequestOwnership();
-                if (rightThighRealtimeTransform != null) rightThighRealtimeTransform.RequestOwnership();
-                if (leftCalfRealtimeTransform != null) leftCalfRealtimeTransform.RequestOwnership();
-                if (rightCalfRealtimeTransform != null) rightCalfRealtimeTransform.RequestOwnership();
-                if (leftFootRealtimeTransform != null) leftFootRealtimeTransform.RequestOwnership();
-                if (rightFootRealtimeTransform != null) rightFootRealtimeTransform.RequestOwnership();
-
-                if (rootRealtimeTransform != null) rootRealtimeTransform.RequestOwnership();
                 if (pelvisRealtimeTransform != null) pelvisRealtimeTransform.RequestOwnership();
                 if (spineRealtimeTransform != null) spineRealtimeTransform.RequestOwnership();
                 if (leftThighRealtimeTransform != null) leftThighRealtimeTransform.RequestOwnership();
@@ -357,7 +332,7 @@ namespace Custom.Normal
             }
 
             // Pelvis
-            if (_localPlayer.pelvis != null)
+            if (_pelvis != null && _localPlayer.pelvis != null)
             {
                 model.pelvisActive = _localPlayer.pelvis.gameObject.activeSelf;
 
@@ -370,7 +345,7 @@ namespace Custom.Normal
             // }
 
             // Spine
-            if (_localPlayer.spine != null)
+            if (_spine != null && _localPlayer.spine != null)
             {
                 model.spineActive = _localPlayer.spine.gameObject.activeSelf;
 
@@ -479,7 +454,7 @@ namespace Custom.Normal
             }
 
             // Spine 1
-            if (_localPlayer.spine1 != null)
+            if (_spine1 != null && _localPlayer.spine1 != null)
             {
                 model.spine1Active = _localPlayer.spine1.gameObject.activeSelf;
 
@@ -492,7 +467,7 @@ namespace Custom.Normal
             // }
 
             // Spine 2
-            if (_localPlayer.spine2 != null)
+            if (_spine2 != null && _localPlayer.spine2 != null)
             {
                 model.spine2Active = _localPlayer.spine2.gameObject.activeSelf;
 
@@ -505,7 +480,7 @@ namespace Custom.Normal
             // }
 
             // Neck
-            if (_localPlayer.neck != null)
+            if (_neck != null && _localPlayer.neck != null)
             {
                 model.neckActive = _localPlayer.neck.gameObject.activeSelf;
 
@@ -518,7 +493,7 @@ namespace Custom.Normal
             // }
 
             // Head
-            if (_localPlayer.head != null)
+            if (_head != null && _localPlayer.head != null)
             {
                 model.headActive = _localPlayer.head.gameObject.activeSelf;
 

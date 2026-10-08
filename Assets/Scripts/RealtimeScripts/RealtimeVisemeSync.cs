@@ -17,10 +17,14 @@ public class RealtimeVisemeSync : RealtimeComponent<RealtimeVisemeModel>
 
     void SetVisemes()
     {
-        // skip index 0 (as it is the silent viseme which looks weired if set to the default value of 100)
-        for (int i = 1; i < model.entries.Count(); i++)
+        // Iterate the actual keys: blendshape index == dictionary key.
+        // A count-based loop silently misassigns weights when keys are non-contiguous.
+        foreach (KeyValuePair<uint, RealtimeGenericFloatValueModel> entry in model.entries)
         {
-            skinnedMeshRenderer.SetBlendShapeWeight(i, GetValue((uint)i));
+            // skip index 0 (silent viseme; looks weird if set to the default value of 100)
+            if (entry.Key == 0)
+                continue;
+            skinnedMeshRenderer.SetBlendShapeWeight((int)entry.Key, entry.Value.value);
         }
     }
 

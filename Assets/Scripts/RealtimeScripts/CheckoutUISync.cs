@@ -57,11 +57,21 @@ public class CheckoutUISync : RealtimeComponent<RealtimeCheckoutModel>
 
     public void SetSelectedIndex(int newIndex)
     {
+        if (model == null)
+        {
+            Debug.LogWarning("SetSelectedIndex called before the Realtime model is available; ignoring.");
+            return;
+        }
         model.selectedIndex = newIndex;
     }
 
     public void SetButtonPressed(bool newState)
     {
+        if (model == null)
+        {
+            Debug.LogWarning("SetButtonPressed called before the Realtime model is available; ignoring.");
+            return;
+        }
         model.buttonPressed = newState;
     }
 

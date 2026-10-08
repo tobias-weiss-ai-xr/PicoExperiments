@@ -17,6 +17,8 @@ public class ConvaiAgentContinousMovement : MonoBehaviour
     public float currAngle;
     public bool allowRotation = false;
 
+    private Coroutine _moveRoutine;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -40,6 +42,9 @@ public class ConvaiAgentContinousMovement : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (walkTarget == null)
+            return;
+
         // Stay where you are until flag is set
         if (!actionsHandler.startedMoving)
             return;
@@ -50,10 +55,19 @@ public class ConvaiAgentContinousMovement : MonoBehaviour
             currDistanceToPlayer = Vector3.Distance(To2D(this.transform.position), To2D(Camera.main.transform.position));
             if (currDistanceToPlayer > distanceToStartFollow)
             {
-                // Vector3 moveDir = (Camera.main.transform.position - this.transform.position).normalized;
-                // Vector3 targetPos = To2D(Camera.main.transform.position) + To2D(moveDir) * approachDistance;
-                // walkTarget.transform.position = targetPos;
-                StartCoroutine(actionsHandler.MoveTo(walkTarget));
+                // Follow the player, stopping approachDistance short of them
+                Vector3 moveDir = To2D(Camera.main.transform.position - this.transform.position).normalized;
+                walkTarget.transform.position = To2D(Camera.main.transform.position) - moveDir * approachDistance;
+
+                // MoveTo runs for many frames; only start a new one when the previous has finished,
+                // otherwise coroutines stack up one per frame
+                if (_moveRoutine == null)
+                    _moveRoutine = StartCoroutine(actionsHandler.MoveTo(walkTarget));
+            }
+            else if (_moveRoutine != null && currDistanceToPlayer <= approachDistance)
+            {
+                // close enough; let the running MoveTo finish and allow a fresh one later
+                _moveRoutine = null;
             }
         }
         if(actionCount == 0 && allowRotation)
