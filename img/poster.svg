@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1618" height="1000" viewBox="0 0 1618 1000" font-family="Arial, Helvetica, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0A0F24"/><stop offset="1" stop-color="#141B3D"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#6FE7FF"/><stop offset="1" stop-color="#8B7CFF"/>
+    </linearGradient>
+    <radialGradient id="lens" cx="0.5" cy="0.4" r="0.8">
+      <stop offset="0" stop-color="#8B7CFF" stop-opacity="0.55"/><stop offset="1" stop-color="#6FE7FF" stop-opacity="0.08"/>
+    </radialGradient>
+    <pattern id="dots" width="55" height="55" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.6" fill="#3A4B7C" fill-opacity="0.35"/>
+    </pattern>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1618" height="1000" fill="url(#bg)"/>
+  <rect width="1618" height="1000" fill="url(#dots)"/>
+
+  <!-- golden spiral through the golden point -->
+  <path d="M 1034.0,618.0 L 1035.3,611.8 L 1035.6,605.1 L 1034.6,598.0 L 1032.3,590.9 L 1028.6,584.0 L 1023.4,577.4 L 1016.9,571.5 L 1009.1,566.6 L 1000.0,563.0 L 989.9,560.8 L 979.1,560.5 L 967.7,562.1 L 956.2,565.8 L 944.9,571.8 L 934.3,580.1 L 924.8,590.6 L 916.9,603.3 L 911.0,618.0 L 907.5,634.3 L 906.9,651.9 L 909.5,670.2 L 915.6,688.9 L 925.3,707.1 L 938.7,724.2 L 955.7,739.6 L 976.3,752.4 L 1000.0,762.0 L 1026.4,767.6 L 1054.8,768.6 L 1084.5,764.4 L 1114.6,754.6 L 1144.1,738.9 L 1171.9,717.2 L 1196.8,689.6 L 1217.5,656.4 L 1233.0,618.0 L 1242.1,575.3 L 1243.7,529.3 L 1236.9,481.2 L 1221.1,432.5 L 1195.7,384.8 L 1160.6,339.9 L 1115.9,299.6 L 1062.1,266.0 L 1000.0,241.0 L 930.9,226.3 L 856.5,223.7 L 778.7,234.7 L 699.9,260.3 L 622.7,301.4 L 550.0,358.2 L 484.9,430.5 L 430.5,517.6 L 390.0,618.0 L 366.2,729.7 L 362.1,850.2 L 379.8,976.1 L 421.3,1103.6 L 487.7,1228.5 L 579.6,1346.1 L 696.7,1451.4 L 837.5,1539.4 L 1000.0,1605.0 L 1180.8,1643.4 L 1375.7,1650.2 L 1579.4,1621.5 L 1785.7,1554.4 L 1987.8,1446.9 L 2178.1,1298.2 L 2348.5,1108.8 L 2490.9,880.9 L 2597.0,618.0 L 2659.1,325.5 L 2670.1,10.1 L 2623.7,-319.4 L 2515.1,-653.3 L 2341.1,-980.3 L 2100.5,-1288.1 L 1794.1,-1563.9 L 1425.3,-1794.2 L 1000.0,-1966.0 L 526.7,-2066.5 L 16.5,-2084.2 L -516.8,-2009.1 L -1057.0,-1833.4 L -1586.1,-1552.0 L -2084.1,-1162.6 L -2530.3,-666.9 L -2903.0,-70.2 L -3180.8,618.0 L -3343.5,1383.9 L -3372.1,2209.3 L -3250.6,3072.1 L -2966.4,3946.2 L -2511.0,4802.2 L -1881.1,5608.2 L -1079.0,6330.0 L -113.5,6933.0 L 1000.0,7382.6 L 2239.2,7645.7 L 3574.7,7692.0 L 4970.7,7495.5 L 6385.0,7035.6 L 7770.1,6298.8 L 9074.1,5279.6 L 10242.0,3981.8 L 11217.7,2419.7 L 11945.1,618.0" fill="none" stroke="#6FE7FF" stroke-opacity="0.35" stroke-width="2.5"/>
+
+  <!-- headset wireframe, focal element on the golden point -->
+  <g filter="url(#glow)">
+    <path d="M 1000 470 C 1030 395 1185 395 1228 470" fill="none" stroke="#6FE7FF" stroke-opacity="0.55" stroke-width="5"/>
+    <path d="M 890 545 C 770 520 755 650 908 662" fill="none" stroke="#6FE7FF" stroke-opacity="0.55" stroke-width="5"/>
+    <path d="M 1232 545 C 1352 520 1367 650 1214 662" fill="none" stroke="#6FE7FF" stroke-opacity="0.55" stroke-width="5"/>
+    <rect x="888" y="468" width="344" height="204" rx="97" fill="#6FE7FF" fill-opacity="0.06" stroke="#6FE7FF" stroke-width="4"/>
+    <path d="M 918 646 Q 1060 726 1202 646" fill="none" stroke="#8B7CFF" stroke-opacity="0.6" stroke-width="4"/>
+    <circle cx="993" cy="568" r="55" fill="url(#lens)" stroke="#8B7CFF" stroke-width="3"/>
+    <circle cx="1129" cy="568" r="55" fill="url(#lens)" stroke="#8B7CFF" stroke-width="3"/>
+    <line x1="1048" y1="568" x2="1074" y2="568" stroke="#8B7CFF" stroke-width="3"/>
+  </g>
+
+  <!-- gaze rays onto the AoI product box (Details/Advertisement/Logo) -->
+  <g stroke-width="2.5" fill="none">
+    <line x1="1236" y1="540" x2="1376" y2="622" stroke="#FF5A6E" stroke-opacity="0.85"/>
+    <line x1="1240" y1="566" x2="1376" y2="656" stroke="#4ADE80" stroke-opacity="0.85"/>
+    <line x1="1236" y1="592" x2="1376" y2="688" stroke="#4C8DFF" stroke-opacity="0.85"/>
+  </g>
+  <g>
+    <polygon points="1378,598 1420,573 1512,588 1472,613" fill="#1B2A4A" stroke="#9FB0D8" stroke-width="1.5"/>
+    <polygon points="1472,613 1512,588 1512,688 1472,713" fill="#141B3D" stroke="#9FB0D8" stroke-width="1.5"/>
+    <polygon points="1378,598 1472,613 1472,713 1378,698" fill="#0E1530" stroke="#9FB0D8" stroke-width="1.5"/>
+    <polygon points="1378,627 1472,642 1472,664 1378,649" fill="#FF5A6E" fill-opacity="0.85"/>
+    <polygon points="1378,649 1472,664 1472,688 1378,673" fill="#4ADE80" fill-opacity="0.85"/>
+    <polygon points="1378,673 1472,688 1472,713 1378,698" fill="#4C8DFF" fill-opacity="0.85"/>
+  </g>
+
+  <!-- text block, left of the 0.382 section line -->
+  <text x="89" y="313" font-size="21" letter-spacing="8" fill="#6FE7FF">RESEARCH ENVIRONMENT</text>
+  <text x="89" y="414" font-size="89" font-weight="bold" fill="#F2F6FF">PICO 4</text>
+  <text x="89" y="494" font-size="55" font-weight="bold" fill="#F2F6FF">ENTERPRISE</text>
+  <rect x="89" y="524" width="233" height="13" rx="6" fill="url(#accent)"/>
+  <text x="89" y="584" font-size="34" fill="#C9D6F2">VR Research Environment</text>
+  <text x="89" y="618" font-size="21" fill="#9FB0D8">Multi-user experiments · AI avatars · Gaze &amp; AoI analytics</text>
+
+  <!-- capability chips, 2x2 on the Fibonacci ladder -->
+  <g font-size="21" fill="#C9D6F2">
+    <rect x="89" y="814" width="233" height="55" rx="21" fill="#1B2A4A" stroke="#3A4B7C"/><text x="111" y="848">Multi-user VR</text>
+    <rect x="343" y="814" width="233" height="55" rx="21" fill="#1B2A4A" stroke="#3A4B7C"/><text x="365" y="848">Convai AI avatars</text>
+    <rect x="89" y="892" width="233" height="55" rx="21" fill="#1B2A4A" stroke="#3A4B7C"/><text x="111" y="926">Eye tracking 24 Hz</text>
+    <rect x="343" y="892" width="233" height="55" rx="21" fill="#1B2A4A" stroke="#3A4B7C"/><text x="365" y="926">AoI + fixation logs</text>
+  </g>
+
+  <text x="1529" y="947" font-size="21" fill="#9FB0D8" fill-opacity="0.7" text-anchor="end">github.com/tobias-weiss-ai-xr/PicoExperiments</text>
+</svg>
