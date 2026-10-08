@@ -17,20 +17,46 @@ It contains following demos:
 - Supermarket
 ![img/supermarket-agent.png](img/supermarket-agent.png)
 - Immersive VR questionnaire
-- Feature-map raycast AoI demo (`Assets/Scenes/ProductSpawnV2.unity`)
+- Feature-map raycast AoI demo (`Assets/Scenes/ObjectTracking.unity`)
 - and more...
 
 ## Feature-Map Raycast AoI Demo
 
 A head-mounted-display raycast demo that does **not** require eye tracking
-(scene: `Assets/Scenes/ProductSpawnV2.unity`).
+(scene: `Assets/Scenes/ObjectTracking.unity`, formerly `ProductSpawnV2`).
 
 - `FeatureMapRaycaster.cs` casts a ray from the camera root (`PlayerCameraRoot`, 20 m) each frame.
 - Hits on objects using the `Universal Render Pipeline/FeatureMap` shader (`Assets/Scripts/FeatureMap.shader`)
   are resolved to a texel in the material's `_FeatureMap` texture. The texel color encodes the
   area of interest: red = *Details*, green = *Advertisement*, blue = *Logo*.
 - `FeatureMapDisplay.cs` subscribes to the `OnFeatureMapColor` event and shows the label on a TMP text.
-  Hook a CSV logger onto the same event to record AoI dwell times.
+
+### AoI logging
+
+The raycaster logs each session to three CSVs in `Recordings/` (editor: project root;
+build: app files dir). Filenames: `<date>-<participantId>-<scene>-aoi*.csv`, unique per run.
+Set `participantId` on the raycaster component per participant.
+
+| File | Columns | Content |
+|---|---|---|
+| `…-aoi.csv` | `StartEpochMs;LogTime;DurationInSec;Area;HitObject` | one row per area interval, transitions only |
+| `…-aoi-raw.csv` | `EpochMs;LogTime;Area` | committed area sampled at 10 Hz for post-hoc re-analysis |
+| `…-aoi-fixations.csv` | `StartEpochMs;EndEpochMs;DurationInSec;Area` | fixations: gaze stable (< 50°/s) ≥ 100 ms on an area |
+
+Signal processing, tuned via inspector fields on the raycaster:
+
+- **Debounce** (`minDwell`, 100 ms): an area must hold this long before a switch commits —
+  kills texel-noise flicker at area borders.
+- **Border hysteresis** (`probeSpread`, 0.03): before committing, a 5-ray cross (center + 4 probes)
+  must confirm the new area with ≥ 4/5 votes; otherwise the dwell hold restarts. A ray straddling
+  a border splits its probes and never flips the committed area. Rationale and tuning:
+  `docs/specs/2026-10-08-aoi-tracking-design.md`.
+- **Fixations** (`saccadeVelocity` 50°/s, `minFixationDuration` 100 ms): angular-velocity saccade
+  detection splits fixations; sub-threshold sweeps are discarded.
+
+Timestamps are Unix epoch ms (alignable with the eye-tracking CSVs) plus local wall-clock strings.
+Rows are flushed per write. Design rationale: `docs/specs/2026-10-08-aoi-tracking-design.md`.
+
 - `FeatureMapSpawner.cs` instantiates the demo box (`Resources/FeatureMapDemo/DemoBox`) and assigns the
   feature map at runtime; the texture needs *Read/Write Enabled* (already set in its `.meta`).
 
