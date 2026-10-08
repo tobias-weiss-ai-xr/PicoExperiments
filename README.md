@@ -58,7 +58,8 @@ Set `participantId` on the raycaster component per participant.
 |---|---|---|
 | `…-aoi.csv` | `StartEpochMs;LogTime;DurationInSec;Area;HitObject` | one row per area interval, transitions only |
 | `…-aoi-raw.csv` | `EpochMs;LogTime;Area;HitObject;PointX;PointY;PointZ;U;V` | committed area sampled at 10 Hz with hit geometry for post-hoc surface mapping |
-| `…-aoi-fixations.csv` | `StartEpochMs;EndEpochMs;DurationInSec;Area` | fixations: gaze stable (< 50°/s) ≥ 100 ms on an area |
+| `…-aoi-fixations.csv` | `StartEpochMs;EndEpochMs;DurationInSec;Area` | fixations: gaze stable (< 30°/s smoothed) ≥ 100 ms on an area |
+| `…-aoi-session.json` | JSON manifest | pipeline id, participant, scene, timestamps, all knob values, feature-map texture info — recordings are self-describing |
 
 Signal processing, tuned via inspector fields on the raycaster:
 
@@ -69,11 +70,16 @@ Signal processing, tuned via inspector fields on the raycaster:
   otherwise the dwell hold restarts. A ray straddling a border splits the cone and never flips
   the committed area. View-cone-sampling approach after current VR gaze-methodology literature —
   rationale and tuning: `docs/specs/2026-10-08-aoi-tracking-design.md`.
-- **Fixations** (`saccadeVelocity` 30°/s, `minFixationDuration` 100 ms): angular-velocity saccade
-  detection splits fixations; sub-threshold sweeps are discarded. 30°/s is the validated I-VT
-  threshold for VR (20–35°/s range, IEEE VRW 2025).
+- **Fixations** (`saccadeVelocity` 30°/s, `minFixationDuration` 100 ms): saccade detection on a
+  ~20 ms moving-average angular velocity (Tobii-style I-VT filter) splits fixations; sub-threshold
+  sweeps are discarded. 30°/s is the validated I-VT threshold for VR (20–35°/s range, IEEE VRW 2025).
+- **Gaze source** (`useEyeTracking`, off by default): when the scene's `EyeTrackingManager`
+  (PICO combined eye gaze, 24 Hz) reports valid data, the AoI ray — classification, border cone,
+  and fixations — follows the *eye* instead of the head, falling back to head forward whenever
+  eye data is stale or unavailable (debug ray: blue = eye, red/green = head).
 
-Offline analysis (dwell/fixation summaries, transition matrix, UV gaze heatmap):
+Offline analysis (dwell/fixation summaries, transition matrix, time-to-first-fixation, scanpath
+stats, `--batch` aggregation, UV gaze heatmap):
 `python analysis/aoi_report.py Recordings/<session-prefix>`.
 
 Timestamps are Unix epoch ms (alignable with the eye-tracking CSVs) plus local wall-clock strings.

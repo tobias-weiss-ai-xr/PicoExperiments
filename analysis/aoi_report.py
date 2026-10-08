@@ -3,6 +3,7 @@
 
 Usage:
     python analysis/aoi_report.py Recordings/<date>-<pid>-<scene>-aoi
+    python analysis/aoi_report.py --batch <dir>   # one line per *-aoi.csv session + aggregates
 
 Reads the session's three CSVs (semicolon-separated, whichever exist):
     <prefix>.csv           transitions: StartEpochMs;LogTime;DurationInSec;Area;HitObject
@@ -16,6 +17,8 @@ No third-party dependencies required for the text report.
 """
 
 import csv
+import glob
+import math
 import os
 import statistics
 import sys
@@ -34,6 +37,14 @@ def fmt(x, nd=3):
     return f"{x:.{nd}f}"
 
 
+def entropy_bits(counter):
+    """Shannon entropy in bits over a probability distribution given as a Counter."""
+    n = sum(counter.values())
+    if n == 0:
+        return 0.0
+    return -sum((c / n) * math.log2(c / n) for c in counter.values())
+
+
 def analyze_transitions(path):
     rows = read_csv(path)
     print(f"== transitions ({os.path.basename(path)}) ==")
@@ -44,7 +55,17 @@ def analyze_transitions(path):
     print(f"{'Area':<15}{'intervals':>10}{'total_s':>10}{'mean_s':>9}{'median_s':>10}")
     for a, durs in sorted(by_area.items(), key=lambda kv: -sum(kv[1])):
         print(f"{a:<15}{len(durs):>10}{fmt(sum(durs)):>10}{fmt(sum(durs)/len(durs)):>9}{fmt(statistics.median(durs)):>10}")
-    print(f"total session: {fmt(sum(sum(d) for d in by_area.values()))} s")
+    total = sum(sum(d) for d in by_area.values())
+    print(f"total session: {fmt(total)} s")
+
+    # time-to-first-fixation per area, from first entry relative to session start
+    t0 = min(int(r["StartEpochMs"]) for r in rows)
+    first = {}
+    for r in rows:
+        first.setdefault(r["Area"], int(r["StartEpochMs"]))
+    print("\ntime-to-first (TTFF), s from session start:")
+    for a in sorted(first, key=lambda a: first[a]):
+        print(f"  {a:<15}{(first[a] - t0) / 1000:>8.3f}")
 
     seq = [r["Area"] for r in rows]
     pairs = Counter(zip(seq, seq[1:]))
@@ -54,6 +75,72 @@ def analyze_transitions(path):
     for a in areas:
         row = "".join(f"{pairs.get((a, b), 0):>13}" for b in areas)
         print(f"{a[:12]:<12} {row}")
+
+    n = len(seq)
+    ret = sum(1 for i in range(2, n) if seq[i] == seq[i - 2]) / max(1, n - 2)
+    print("\nscanpath:")
+    print(f"  sequence length: {n}")
+    print(f"  distinct areas: {len(set(seq))}")
+    print(f"  entropy (transition pairs): {fmt(entropy_bits(pairs))} bit")
+    print(f"  immediate-return rate: {fmt(ret)}  (i>=2: area_i == area_i-2)")
+
+
+def session_stats(prefix):
+    """Return (dwell_by_area, total_s, fix_count) for one session prefix.
+    None if the transitions CSV is missing; fix_count None if fixations CSV is missing."""
+    if not os.path.exists(prefix + ".csv"):
+        return None
+    dwell = Counter()
+    for r in read_csv(prefix + ".csv"):
+        dwell[r["Area"]] += float(r["DurationInSec"])
+    total = sum(dwell.values())
+    fpath = prefix + "-fixations.csv"
+    fix_count = len(read_csv(fpath)) if os.path.exists(fpath) else None
+    return dwell, total, fix_count
+
+
+def analyze_batch(directory):
+    paths = sorted(glob.glob(os.path.join(directory, "*-aoi.csv")))
+    if not paths:
+        print("no *-aoi.csv session files found in", directory)
+        return
+    print(f"== batch: {len(paths)} session(s) in {directory} ==")
+    sessions = []
+    for p in paths:
+        prefix = os.path.splitext(p)[0]
+        name = os.path.basename(prefix)
+        if name.endswith("-aoi"):
+            name = name[:-4]
+        st = session_stats(prefix)
+        if st is None or not st[0]:
+            print(f"  {name}: (no transitions data)")
+            continue
+        dwell, total, fix_count = st
+        dom_area, dom_dur = max(dwell.items(), key=lambda kv: kv[1])
+        dom_share = 100.0 * dom_dur / total if total else 0.0
+        rate = 60.0 * fix_count / total if (total and fix_count) else 0.0
+        print(f"  {name:<45}{fmt(total, 1):>8}s  dom {dom_area}({fmt(dom_share, 1)}%)  "
+              f"fix {fix_count if fix_count is not None else 0}  {fmt(rate, 1)}/min")
+        sessions.append(st)
+    if not sessions:
+        return
+    totals = [t for _, t, _ in sessions]
+    pooled = Counter()
+    pooled_fix = 0
+    n_fix = 0
+    for dwell, _, fc in sessions:
+        pooled.update(dwell)
+        if fc is not None:
+            pooled_fix += fc
+            n_fix += 1
+    grand = sum(pooled.values())
+    print("\n-- aggregates over sessions --")
+    print(f"  sessions: {len(sessions)}")
+    print(f"  median session length: {fmt(statistics.median(totals), 1)} s")
+    print("  pooled dwell shares:")
+    for a, d in pooled.most_common():
+        print(f"    {a:<15}{fmt(100.0 * d / grand, 1)}%")
+    print(f"  pooled fixation count: {pooled_fix} (from {n_fix}/{len(sessions)} sessions)")
 
 
 def analyze_fixations(path):
@@ -106,9 +193,17 @@ def analyze_raw(path, prefix):
 
 
 def main():
-    if len(sys.argv) != 2:
+    args = sys.argv[1:]
+    if not args:
         sys.exit(__doc__)
-    prefix = sys.argv[1].rstrip("/")
+    if args[0] == "--batch":
+        if len(args) != 2:
+            sys.exit("usage: --batch <dir>")
+        analyze_batch(args[1])
+        return
+    if len(args) != 1:
+        sys.exit(__doc__)
+    prefix = args[0].rstrip("/")
     if not prefix.endswith("-aoi") and os.path.exists(prefix + "-aoi.csv"):
         prefix += "-aoi"
     for suffix, fn in [(".csv", analyze_transitions),

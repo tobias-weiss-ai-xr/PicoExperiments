@@ -112,3 +112,40 @@ and shares, UV gaze histogram as `<prefix>-heatmap.png`.
 distance-segmented colliders (MDPI Appl. Sci. 12:1027 workflow); real-time
 surface attention accumulation; eye-tracking-based AOIs (this demo is
 head-raycast by design).
+
+## AoI v3: provenance, eye-ray source, smoothed I-VT (added 2026-10-08)
+
+Three changes plus report upgrades, executed via subagent flow (one implementer
+per file + two-stage review; the C# implementer was completed by the controller
+after a stall, including one correctness fix: the switch-verification cone now
+centers on the ray that proposed the area, `_gazeFwd`, not head forward).
+
+**Session manifest.** Every session now writes `<base>-session.json`
+(JsonUtility): pipeline id `aoi-v3`, participant, scene, timestamps, Unity
+version, all pipeline knobs (minDwell, foveaRadius, rawSampleRate,
+saccadeVelocity, minFixationDuration, useEyeTracking), and the feature-map
+texture name/size. Recordings are self-describing - the Hooge et al. 2026
+"report your AOI pipeline" requirement, enforced by construction.
+
+**Eye-ray gaze source.** `useEyeTracking` (default false): when the scene's
+EyeTrackingManager (PICO combined gaze, 24 Hz) reports valid data within the
+last 150 ms, the classification ray, the verification cone, and the fixation
+input all use the world-space eye-gaze direction; otherwise head forward. The
+manager's event only fires on device-valid frames; freshness covers missed
+frames. This upgrades the demo from "where the head pointed" to "where the
+participant looked" on capable hardware, with head-ray fallback everywhere else.
+Debug ray tint: blue = eye-driven, red/green = head mode.
+
+**I-VT velocity smoothing.** The saccade threshold now applies to a sliding
+~20 ms moving-average angular velocity (Tobii-style filter; per the IEEE VRW
+2025 validation) instead of raw per-frame velocity, so frame-time jitter cannot
+trip a false saccade.
+
+**Report upgrades** (`analysis/aoi_report.py`): time-to-first-fixation per
+area; `--batch <dir>` mode with per-session summary lines and pooled dwell /
+fixation aggregates; scanpath basics (sequence length, distinct areas,
+transition-pair Shannon entropy, immediate-return rate).
+
+**Known minor** (documented, not fixed): in eye mode the cone ring offsets use
+head-relative right/up axes; the 8-fold symmetric layout makes the skew
+negligible at the ~1 deg ring radius. Revisit only if eye-in-head angles grow.

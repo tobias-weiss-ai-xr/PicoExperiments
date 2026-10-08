@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using UnityEngine;
@@ -23,6 +24,9 @@ public class FeatureMapRaycaster : MonoBehaviour
     [SerializeField] float saccadeVelocity = 30f;
     [Tooltip("Minimum fixation length in seconds to be logged")]
     [SerializeField] float minFixationDuration = 0.1f;
+    [Header("Gaze source")]
+    [Tooltip("Cast the AoI ray along the (combined, world-space) PICO eye-gaze direction instead of head forward when valid eye data is available; falls back to head forward otherwise")]
+    [SerializeField] bool useEyeTracking = false;
 
     // writers (AoI transitions, raw trace, fixations)
     StreamWriter _aoiWriter, _rawWriter, _fixWriter;
@@ -47,6 +51,19 @@ public class FeatureMapRaycaster : MonoBehaviour
     long _fixStartMs;
     string _fixAoi;
 
+    // eye-gaze source: latest valid world-space gaze dir from EyeTrackingManager
+    EyeTrackingManager _eyeTracking;
+    Vector3 _gazeDirWorld;
+    long _gazeUpdateMs;
+    const long EyeGazeFreshnessMs = 150; // manager streams at 24 Hz (~42 ms); tolerate a missed frame
+    Vector3 _gazeFwd; // the ray actually used this frame (eye when fresh, else head) - cone-vote center
+
+    // I-VT velocity smoothing: sliding ~20 ms window, decision on mean deg/s (IEEE VRW 2025)
+    readonly List<float> _velDt = new List<float>();
+    readonly List<float> _velDeg = new List<float>();
+    float _velSumDt;
+    const float VelWindowSec = 0.02f;
+
     static string LogTime() => DateTime.Now.ToString("HH:mm:ss.fff");
     static long NowMs() => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
     static string Sec(float seconds) => seconds.ToString("F3", CultureInfo.InvariantCulture);
@@ -64,8 +81,20 @@ public class FeatureMapRaycaster : MonoBehaviour
         if (aoiLogging || fixationLogging)
             StartAoiLog();
 
+        if (useEyeTracking)
+        {
+            // Convention in this project (EyeTrackingInfo/Logging): the manager lives on a
+            // GameObject named "EyeTracking". Only its read-only event is consumed here.
+            _eyeTracking = GameObject.Find("EyeTracking")?.GetComponent<EyeTrackingManager>();
+            if (_eyeTracking != null)
+                _eyeTracking.OnEyeTrackingEvent += OnEyeGazeEvent;
+            else
+                Debug.LogWarning("FeatureMapRaycaster: useEyeTracking is on but no GameObject named 'EyeTracking' with an EyeTrackingManager was found; falling back to head gaze.");
+        }
+
         _prevDir = cameraTransform.forward;
         _prevDirMs = NowMs();
+        _gazeFwd = cameraTransform.forward;
     }
 
     void StartAoiLog()
@@ -80,6 +109,28 @@ public class FeatureMapRaycaster : MonoBehaviour
 
         DateTime now = DateTime.Now;
         string baseName = $"{now:yyyy-MM-dd-HH-mm-ss}-{participantId}-{gameObject.scene.name}-aoi";
+
+        // Self-describing recording: pipeline knobs + feature map info for replicability
+        int texW, texH;
+        AoiSessionManifest manifest = new AoiSessionManifest
+        {
+            pipeline = "aoi-v3",
+            participantId = participantId,
+            scene = gameObject.scene.name,
+            timestampUtcEpochMs = NowMs(),
+            timestampLocal = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+            unityVersion = Application.version,
+            minDwell = minDwell,
+            foveaRadius = foveaRadius,
+            rawSampleRate = rawSampleRate,
+            saccadeVelocity = saccadeVelocity,
+            minFixationDuration = minFixationDuration,
+            useEyeTracking = useEyeTracking,
+            featureMapTexture = FindFeatureMapTexture(out texW, out texH),
+            featureMapWidth = texW,
+            featureMapHeight = texH,
+        };
+        File.WriteAllText(UniquePath(logPath, baseName + "-session.json"), JsonUtility.ToJson(manifest, true));
 
         if (aoiLogging)
         {
@@ -126,10 +177,16 @@ public class FeatureMapRaycaster : MonoBehaviour
     {
         long nowMs = NowMs();
 
-        string area = ClassifyRay(cameraTransform.position, cameraTransform.TransformDirection(Vector3.forward), out RayHit hit, out Color color);
+        Vector3 fwd = cameraTransform.TransformDirection(Vector3.forward);
+        bool eyeRay = _eyeTracking != null && nowMs - _gazeUpdateMs <= EyeGazeFreshnessMs;
+        if (eyeRay)
+            fwd = _gazeDirWorld;
+
+        string area = ClassifyRay(cameraTransform.position, fwd, out RayHit hit, out Color color);
+        _gazeFwd = fwd;
         if (color != Color.clear)
             OnFeatureMapColor?.Invoke(color);
-        Debug.DrawRay(cameraTransform.position, cameraTransform.TransformDirection(Vector3.forward) * 20f, area == "None" ? Color.green : Color.red);
+        Debug.DrawRay(cameraTransform.position, fwd * 20f, eyeRay ? Color.blue : (area == "None" ? Color.green : Color.red));
         ObserveArea(area, nowMs, hit.hitObject);
 
         if (_rawWriter != null && nowMs >= _nextRawSampleMs)
@@ -143,7 +200,7 @@ public class FeatureMapRaycaster : MonoBehaviour
         }
 
         if (_fixWriter != null)
-            UpdateFixation(nowMs, cameraTransform.forward);
+            UpdateFixation(nowMs, fwd);
     }
 
     // One raycast + feature map texel classification. color is Color.clear when no
@@ -207,7 +264,7 @@ public class FeatureMapRaycaster : MonoBehaviour
     void VerifySwitch(string area, long nowMs)
     {
         Vector3 origin = cameraTransform.position;
-        Vector3 fwd = cameraTransform.TransformDirection(Vector3.forward);
+        Vector3 fwd = _gazeFwd; // center the cone on the ray that proposed the area (eye ray when active)
         Vector3 right = cameraTransform.TransformDirection(Vector3.right);
         Vector3 up = cameraTransform.TransformDirection(Vector3.up);
 
@@ -249,9 +306,26 @@ public class FeatureMapRaycaster : MonoBehaviour
         float dt = (nowMs - _prevDirMs) / 1000f;
         if (dt <= 0f)
             return;
-        float velocity = Vector3.Angle(_prevDir, dir) / dt;
+        float deg = Vector3.Angle(_prevDir, dir);
         _prevDir = dir;
         _prevDirMs = nowMs;
+
+        // I-VT smoothing: saccade test on mean deg/s over a sliding ~20 ms
+        // window (Tobii-style, IEEE VRW 2025) so one noisy frame can't trip
+        // the threshold. Kept window stays <= VelWindowSec plus the newest sample.
+        _velDt.Add(dt);
+        _velDeg.Add(deg);
+        _velSumDt += dt;
+        while (_velDt.Count > 1 && _velSumDt - _velDt[0] >= VelWindowSec)
+        {
+            _velSumDt -= _velDt[0];
+            _velDt.RemoveAt(0);
+            _velDeg.RemoveAt(0);
+        }
+        float sumDeg = 0f;
+        for (int i = 0; i < _velDeg.Count; i++)
+            sumDeg += _velDeg[i];
+        float velocity = sumDeg / _velSumDt;
 
         if (velocity > saccadeVelocity)
         {
@@ -284,8 +358,19 @@ public class FeatureMapRaycaster : MonoBehaviour
         }
     }
 
+    // Latest valid combined eye-gaze (world space) from EyeTrackingManager. The
+    // manager only raises this when the PICO device reports valid data, so a
+    // received-direction alone is treated as valid gaze.
+    void OnEyeGazeEvent(Vector3 origin, Vector3 direction, RaycastHit hit)
+    {
+        _gazeDirWorld = direction;
+        _gazeUpdateMs = NowMs();
+    }
+
     private void OnDestroy()
     {
+        if (_eyeTracking != null)
+            _eyeTracking.OnEyeTrackingEvent -= OnEyeGazeEvent;
         long nowMs = NowMs();
         if (_aoiWriter != null)
             SwitchAoi("None", nowMs, ""); // close the open interval
@@ -300,5 +385,48 @@ public class FeatureMapRaycaster : MonoBehaviour
             }
         }
         _aoiWriter = _rawWriter = _fixWriter = null;
+    }
+
+    // Self-describing recording metadata (aoi-v3) for replicability. JsonUtility-
+    // compatible: [Serializable] + public fields, no Newtonsoft.
+    [Serializable]
+    class AoiSessionManifest
+    {
+        public string pipeline;
+        public string participantId;
+        public string scene;
+        public long timestampUtcEpochMs;
+        public string timestampLocal;
+        public string unityVersion;
+        public float minDwell;
+        public float foveaRadius;
+        public float rawSampleRate;
+        public float saccadeVelocity;
+        public float minFixationDuration;
+        public bool useEyeTracking;
+        public string featureMapTexture;
+        public int featureMapWidth;
+        public int featureMapHeight;
+    }
+
+    // One-shot scene scan for the session manifest: first renderer using the
+    // FeatureMap shader reports its texture size (0/empty when none is present).
+    static string FindFeatureMapTexture(out int width, out int height)
+    {
+        foreach (Renderer rend in FindObjectsByType<Renderer>(FindObjectsSortMode.None))
+        {
+            Material mat = rend.sharedMaterial;
+            if (mat == null || mat.shader == null || mat.shader.name != "Universal Render Pipeline/FeatureMap")
+                continue;
+            Texture2D tex = mat.GetTexture("_FeatureMap") as Texture2D;
+            if (tex != null)
+            {
+                width = tex.width;
+                height = tex.height;
+                return tex.name;
+            }
+        }
+        width = height = 0;
+        return null;
     }
 }
