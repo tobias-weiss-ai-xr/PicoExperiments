@@ -51,11 +51,11 @@
   </g>
 
   <!-- text block, left of the 0.382 section line -->
-  <text x="89" y="313" font-size="21" letter-spacing="8" fill="#6FE7FF">RESEARCH ENVIRONMENT</text>
+  <text x="89" y="313" font-size="21" letter-spacing="3" fill="#6FE7FF">RESEARCH &amp; SIMULATION FRAMEWORK</text>
   <text x="89" y="414" font-size="89" font-weight="bold" fill="#F2F6FF">PICO 4</text>
   <text x="89" y="494" font-size="55" font-weight="bold" fill="#F2F6FF">ENTERPRISE</text>
   <rect x="89" y="524" width="233" height="13" rx="6" fill="url(#accent)"/>
-  <text x="89" y="584" font-size="34" fill="#C9D6F2">VR Research Environment</text>
+  <text x="89" y="584" font-size="34" fill="#C9D6F2">Multi-user behavioral experiments</text>
   <text x="89" y="618" font-size="21" fill="#9FB0D8">Multi-user experiments · AI avatars · Gaze &amp; AoI analytics</text>
 
   <!-- capability chips, 2x2 on the Fibonacci ladder -->

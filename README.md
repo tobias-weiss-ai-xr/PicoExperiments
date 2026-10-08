@@ -1,13 +1,13 @@
-# PICO 4 Enterprise VR Research Environment
+# PICO 4 Enterprise VR Research & Simulation Framework
 
-A research environment for behavioral experiments on the PICO 4 Enterprise HMD:
-multi-user VR scenes, AI avatars, and integrated data logging for gaze, areas of
-interest, and user interaction.
+A research and simulation framework for behavioral experiments on the PICO 4
+Enterprise HMD: multi-user VR scenes, AI avatars, and integrated data logging
+for gaze, areas of interest, and user interaction.
 
 ![poster](img/poster.png)
 ![img/menu.png](img/menu.png)
 
-## Key capabilities
+## Framework capabilities
 
 - **Multi-user VR** (Normcore): shared avatars, synchronized dashboards and shop
   interactions (checkout UI, doors, spawnable objects)
@@ -25,7 +25,7 @@ interest, and user interaction.
 - **Desktop testing**: StarterAssets first-person rig runs the scenes in the
   editor without a headset
 
-## Demo scenes
+## Simulation & experiment scenes
 
 - `00_Menu` — main menu / lobby
 - `Supermarket` — multi-user shopping environment with AI agent
