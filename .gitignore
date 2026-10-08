@@ -67,3 +67,4 @@ UserSettings/
 *_BackUpThisFolder_ButDontShipItWithYourGame/
 *_BurstDebugInformation_DoNotShip/
 mono_crash*
+__pycache__/
