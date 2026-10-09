@@ -64,8 +64,8 @@ raycaster resolves the gaze ray to an area label.
 *The ObjectTracking scene: gaze is resolved to product areas in real time —
 [watch the demo video on YouTube](https://www.youtube.com/watch?v=kq_LtLxVaSw).*
 
-![Unity VR environment](img/unity-vr-environment.png)
-*The VR shopping environment in the Unity editor.*
+![ObjectTracking scene in the Unity editor](img/unity-vr-environment.png)
+*The ObjectTracking scene in the Unity editor.*
 
 **Core components** (`Assets/Scripts/`):
 
