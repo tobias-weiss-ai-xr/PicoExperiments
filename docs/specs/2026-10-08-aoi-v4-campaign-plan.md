@@ -143,3 +143,26 @@ the feature-map resolution. Alloc 1.6 MB per renderer, paint 65k texels
 (64x cut); log-normalized ramp and all other behavior unchanged.
 Emission verified functional via stock URP LitInput/LitForwardPass
 includes (_EMISSION keyword + _EmissionMap/_EmissionColor).
+
+### Resolution: "view redirect" / zero-hit sessions (2026-10-09)
+
+Follow-up investigation (commits 8d70be6, cbd1437):
+
+- The two morning heatmap-on sessions (08:23, 08:25) were **not stalls**:
+  raw sampling ran at a smooth ~9 Hz (max gap 1.2 s, same as healthy runs)
+  with zero FeatureMap-shader hits, no spawner errors, no NREs in Editor.log.
+  The heatmap checkbox gates no code before the first successful
+  classification, so it cannot produce the effect; static analysis confirmed
+  the box asset (DemoBoxImport.mat) carries the FeatureMap shader on its
+  shared material, so the instance-vs-shared suspicion is also cleared.
+- Diagnostics (`aoiDebugLog`, 1 Hz) deployed; the first debug run
+  (09:38, heatmap ON) classified correctly end to end: ray hits
+  `DemoBox(Clone) [Universal Render Pipeline/FeatureMap]`, area commits
+  (`Advertisement`, 11.7 s), 123/167 raw samples on target. The anomaly is
+  classified as transient editor state (mid-session recompile batch) and is
+  not reproducible; no code defect found beyond the (real) stall fixed in
+  06aae5e.
+- `saveHeatmapImage` PNG export landed after the 09:38 run (manifest lacks
+  the flag there); end-to-end export validation pending one run with the box
+  ticked. PaintHeatmaps has no internal throttle, so the OnDestroy flush
+  writes the final bumps.
