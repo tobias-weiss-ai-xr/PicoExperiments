@@ -7,6 +7,15 @@ for gaze, areas of interest (AoIs), and user interaction.
 ![poster](img/poster.png)
 ![menu](img/menu.png)
 
+## Contents
+
+- [Quick start](#quick-start)
+- [Scenes](#scenes)
+- [Framework capabilities](#framework-capabilities)
+- [AoI tracking (ObjectTracking scene)](#aoi-tracking-objecttracking-scene)
+- [Data locations & alignment](#data-locations--alignment)
+- [Appendix: setup notes](#appendix-setup-notes)
+
 ## Requirements
 
 | Component | Version / Notes |
@@ -72,6 +81,7 @@ raycaster resolves the gaze ray to an area label.
 | File | Role |
 |---|---|
 | `FeatureMapRaycaster.cs` | Per-frame gaze ray (20 m from `PlayerCameraRoot`), area classification, all logging; settings via inspector checkboxes |
+| `AoiTaskManager.cs` | Config-driven visual-search trials (`Assets/Experiments/*.json`): target detection, randomization, shuffles, VR HUD, per-trial heatmaps, audio feedback |
 | `FeatureMap.shader` | URP Lit derivative rendering the feature map; texel colors encode areas (red = *Details*, green = *Advertisement*, blue = *Logo*) |
 | `FeatureMapSpawner.cs` | Instantiates `count` demo products (`Resources/FeatureMapDemo/DemoBox`) in a row on `Spawn` (inspector: `count`, `spacing`); each is tracked and heatmap-exported independently as `DemoBox_N`; `slotMaterials` assigns distinct visuals per slot (real visual search) |
 | `FeatureMapDisplay.cs` | Shows the current area label on TMP text (quick testing) |
@@ -176,8 +186,9 @@ python analysis/aoi_report.py --batch Recordings/           # aggregate across s
 ```
 
 Reports dwell/fixation summaries, transition matrices, time-to-first-fixation,
-scanpath statistics, a UV gaze heatmap, task trials (found rate + RT per
-target, `-tasks.csv`) and FPS percentiles (`-perf.csv`, with a validity
+scanpath statistics (plus per-trial visits from `-tasks.csv` + `-raw.csv`),
+a UV gaze heatmap, task trials (found rate + RT per target, pooled across
+sessions in `--batch` mode) and FPS percentiles (`-perf.csv`, with a validity
 warning below 40 fps). Stdlib only, no dependencies.
 `analysis/ci_check_aoi_v4.py` is a static regression gate for the pipeline
 internals (`--self-test` checks run without Unity).
@@ -197,6 +208,8 @@ and pre-registration-lite hypotheses all map 1:1 onto the existing outputs.
   runtime logs via `adb logcat -s Unity`
 - Timestamps: Unix epoch ms (alignable with the eye-tracking CSVs) plus local
   wall-clock strings; rows are flushed per write.
+- `Recordings/` is git-ignored — session and participant data never enters the
+  repository. Export analyses you want to share explicitly.
 
 ## Appendix: setup notes
 
