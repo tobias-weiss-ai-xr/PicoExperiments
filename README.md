@@ -2,146 +2,170 @@
 
 A research and simulation framework for behavioral experiments on the PICO 4
 Enterprise HMD: multi-user VR scenes, AI avatars, and integrated data logging
-for gaze, areas of interest, and user interaction.
+for gaze, areas of interest (AoIs), and user interaction.
 
 ![poster](img/poster.png)
-![img/menu.png](img/menu.png)
+![menu](img/menu.png)
+
+## Requirements
+
+| Component | Version / Notes |
+|---|---|
+| Unity | 6000.3.25f1, Android build target, URP |
+| HMD | PICO 4 Enterprise (PICO Unity SDK); desktop testing without headset supported |
+| Eye tracking | Built-in PICO eye tracking, optional (head-gaze fallback) |
+| Normcore | App key required for multi-user scenes |
+| Convai | API key required for AI avatar scenes |
+
+## Quick start
+
+1. Open the project in Unity, switch to the Android platform.
+2. For a first look, open `Assets/Scenes/ObjectTracking.unity` and press Play —
+   runs in the editor without a headset (StarterAssets first-person rig).
+3. For the device, build the APK and deploy to the PICO 4 Enterprise.
+4. After a session on device, pull the recordings:
+   `python analysis/pull_device_recordings.py --list` and analyze with
+   `python analysis/aoi_report.py`.
+
+## Scenes
+
+| Scene | Purpose |
+|---|---|
+| `00_Menu` | Main menu / lobby |
+| `Supermarket` | Multi-user shopping environment with AI agent |
+| `ObjectTracking` | Feature-map AoI tracking demo (see below) |
+| Showroom (car) | Product presentation with switchable exhibits |
+| Showroom (3D printer) | AI sales-avatar consultation |
+| Monty Hall | Decision-making task |
+| Questionnaire (immersive) | In-VR questionnaire |
 
 ## Framework capabilities
 
 - **Multi-user VR** (Normcore): shared avatars, synchronized dashboards and shop
   interactions (checkout UI, doors, spawnable objects)
-- **AI sales avatars** (Convai): speech-driven agents, e.g. a 3D-printer sales
-  consultant in the showroom scene; face tracking and lip sync on device
-- **Eye & face tracking on PICO**: 24 Hz eye-gaze recording, fixation/saccade
-  event detection, and a UDP client that streams gaze events to an external
-  classifier
-- **Head-raycast AoI tracking** for scenes without eye tracking (desktop editor
-  runs and HMDs without eye tracking): areas of interest, dwell times, fixations
-  - see [Feature-Map Raycast AoI Demo](#feature-map-raycast-aoi-demo)
-- **CSV research data logging**: every session writes timestamped CSVs to
-  `Recordings/` (editor: project root, build: app files dir); Unix epoch-ms
-  timestamps make all streams alignable
-- **Desktop testing**: StarterAssets first-person rig runs the scenes in the
-  editor without a headset
+- **AI sales avatars** (Convai): speech-driven agents with face tracking and
+  lip sync on device
+- **Eye & face tracking on PICO**: 24 Hz combined eye gaze, fixation/saccade
+  event detection, UDP streaming of gaze events to an external classifier
+- **AoI tracking pipeline (`aoi-v4`)**: head-gaze or eye-gaze classification,
+  dwell-debounced area switching, fixation logging, live attention heatmap —
+  detailed below
+- **Self-describing research data**: every session writes timestamped CSVs plus
+  a JSON manifest to `Recordings/`; Unix epoch-ms timestamps keep all streams
+  alignable
 
-## Simulation & experiment scenes
+## AoI tracking (`ObjectTracking` scene)
 
-- `00_Menu` — main menu / lobby
-- `Supermarket` — multi-user shopping environment with AI agent
-- Car showroom (`showroom-tank-car-plane`) — product presentation with
-  switchable exhibits
-- 3D-printer showroom — AI sales avatar consultation
-- Monty Hall Game — decision-making task
-- Immersive VR questionnaire
-- `ObjectTracking` (formerly `ProductSpawnV2`) — feature-map raycast AoI demo
-- and more...
+Gaze-based tracking of product areas of interest without any scene wiring:
+products carry a *feature map* texture whose texel colors encode areas, and a
+raycaster resolves the gaze ray to an area label.
 
-## Feature-Map Raycast AoI Demo
+**Core components** (`Assets/Scripts/`):
 
-A head-mounted-display raycast demo that does **not** require eye tracking
-(scene: `Assets/Scenes/ObjectTracking.unity`, formerly `ProductSpawnV2`).
+| File | Role |
+|---|---|
+| `FeatureMapRaycaster.cs` | Per-frame gaze ray (20 m from `PlayerCameraRoot`), area classification, all logging; settings via inspector checkboxes |
+| `FeatureMap.shader` | URP Lit derivative rendering the feature map; texel colors encode areas (red = *Details*, green = *Advertisement*, blue = *Logo*) |
+| `FeatureMapSpawner.cs` | Instantiates the demo product (`Resources/FeatureMapDemo/DemoBox`) with collider and feature map at runtime (texture needs *Read/Write Enabled*, already set) |
+| `FeatureMapDisplay.cs` | Shows the current area label on TMP text (quick testing) |
+| `SensorTracking/EyeTrackingManager.cs` | PICO combined eye gaze (24 Hz, validity-checked); provides the event consumed by the raycaster |
 
-- `FeatureMapRaycaster.cs` casts a ray from the camera root (`PlayerCameraRoot`, 20 m) each frame.
-- Hits on objects using the `Universal Render Pipeline/FeatureMap` shader (`Assets/Scripts/FeatureMap.shader`)
-  are resolved to a texel in the material's `_FeatureMap` texture. The texel color encodes the
-  area of interest: red = *Details*, green = *Advertisement*, blue = *Logo*.
-- `FeatureMapDisplay.cs` subscribes to the `OnFeatureMapColor` event and shows the label on a TMP text.
+### How classification works
 
-### AoI logging
+Ray hits on renderers using the FeatureMap shader are resolved to a texel in
+the material's `_FeatureMap` texture; the texel color names the area. When eye
+tracking is enabled (`useEyeTracking`, off by default), the AoI ray follows the
+*eyes* instead of the head and falls back to head forward whenever eye data is
+stale or invalid. The debug ray visualizes the active source
+(blue = eye gaze, red = committed area, green = none).
 
-The raycaster logs each session to three CSVs in `Recordings/` (editor: project root;
-build: app files dir). Filenames: `<date>-<participantId>-<scene>-aoi*.csv`, unique per run.
-Set `participantId` on the raycaster component per participant.
+### Signal processing
 
-| File | Columns | Content |
-|---|---|---|
-| `…-aoi.csv` | `StartEpochMs;LogTime;DurationInSec;Area;HitObject` | one row per area interval, transitions only |
-| `…-aoi-raw.csv` | `EpochMs;LogTime;Area;HitObject;PointX;PointY;PointZ;U;V` | committed area sampled at 10 Hz with hit geometry for post-hoc surface mapping |
-| `…-aoi-fixations.csv` | `StartEpochMs;EndEpochMs;DurationInSec;Area` | fixations: gaze stable (< 30°/s smoothed) ≥ 100 ms on an area |
-| `…-aoi-session.json` | JSON manifest | pipeline id, participant, scene, timestamps, all knob values, feature-map texture info — recordings are self-describing |
+- **Debounce** (`minDwell`, 100 ms): an area must hold this long before a
+  switch commits; suppresses texel-noise flicker at area borders.
+- **Foveal cone voting** (`foveaRadius`, 1°): a Gaussian-weighted cone of 17
+  rays (center + 8 at 0.5 r + 8 at r) must confirm the new area with ≥ 75 %
+  of total weight, otherwise the dwell hold restarts. A ray straddling a border
+  splits the cone and never flips the committed area.
+- **Fixations** (`saccadeVelocity` 30°/s, `minFixationDuration` 100 ms):
+  I-VT saccade detection on a ~20 ms moving-average angular velocity.
+- **Transparency handling** (always on): the AoI ray skips transparent
+  colliders (render queue ≥ 3000) and classifies the first opaque surface
+  behind them, so looking *through* glass resolves to what is actually seen.
 
-Signal processing, tuned via inspector fields on the raycaster:
+Rationale and tuning for all of the above:
+[`docs/specs/2026-10-08-aoi-tracking-design.md`](docs/specs/2026-10-08-aoi-tracking-design.md).
 
-- **Debounce** (`minDwell`, 100 ms): an area must hold this long before a switch commits —
-  kills texel-noise flicker at area borders.
-- **Foveal cone voting** (`foveaRadius`, 1°): before committing, a Gaussian-weighted cone of
-  17 rays (center + 8 at 0.5 r + 8 at r) must confirm the new area with ≥ 75 % of total weight;
-  otherwise the dwell hold restarts. A ray straddling a border splits the cone and never flips
-  the committed area. View-cone-sampling approach after current VR gaze-methodology literature —
-  rationale and tuning: `docs/specs/2026-10-08-aoi-tracking-design.md`.
-- **Fixations** (`saccadeVelocity` 30°/s, `minFixationDuration` 100 ms): saccade detection on a
-  ~20 ms moving-average angular velocity (Tobii-style I-VT filter) splits fixations; sub-threshold
-  sweeps are discarded. 30°/s is the validated I-VT threshold for VR (20–35°/s range, IEEE VRW 2025).
-- **Gaze source** (`useEyeTracking`, off by default): when the scene's `EyeTrackingManager`
-  (PICO combined eye gaze, 24 Hz) reports valid data, the AoI ray — classification, border cone,
-  and fixations — follows the *eye* instead of the head, falling back to head forward whenever
-  eye data is stale or unavailable (debug ray: blue = eye, red/green = head).
+### Recording outputs
 
-Offline analysis (dwell/fixation summaries, transition matrix, time-to-first-fixation, scanpath
-stats, `--batch` aggregation, UV gaze heatmap):
-`python analysis/aoi_report.py Recordings/<session-prefix>`; batch-mode aggregation across
-sessions: `python analysis/aoi_report.py --batch Recordings/`. Pull recordings from a device
-build: `python analysis/pull_device_recordings.py --list`.
+All files land in `Recordings/` — editor: project root; device:
+`Android/data/<package>/files/Recordings/`. Set `participantId` on the
+raycaster per participant; filenames are unique per run.
 
-Two live-analysis extras, both off by default on the raycaster:
+| File | Content |
+|---|---|
+| `…-aoi.csv` | One row per area interval: `StartEpochMs;LogTime;DurationInSec;Area;HitObject` |
+| `…-aoi-raw.csv` | Committed area sampled at 10 Hz with world hit point and surface UV (`U;V`) for post-hoc surface mapping |
+| `…-aoi-fixations.csv` | Fixations: `StartEpochMs;EndEpochMs;DurationInSec;Area` |
+| `…-aoi-session.json` | Manifest with pipeline id, participant, scene, timestamps, every knob value, feature-map info |
+| `…-aoi-heatmap-<object>.png` | Final attention heatmap(s) when `saveHeatmapImage` is enabled |
 
-- **Attention heatmap** (`attentionHeatmap`): accumulated gaze is tone-mapped (log ramp,
-  black→red→white) onto the product's `_EmissionMap` in real time — attention becomes visible
-  on the object itself during pilots. `heatmapGain` scales accumulation.
-- **Transparency handling** (always on): the AoI ray skips transparent colliders (render queue
-  ≥ 3000) and classifies the first opaque surface behind them — "looking at or through" the
-  glass resolves correctly (MDPI Appl. Sci. 12:1027).
+### Live visualization & debugging (all off by default)
 
-Timestamps are Unix epoch ms (alignable with the eye-tracking CSVs) plus local wall-clock strings.
-Rows are flushed per write. Design rationale: `docs/specs/2026-10-08-aoi-tracking-design.md`.
+- **Attention heatmap** (`attentionHeatmap`): gaze accumulation is tone-mapped
+  (log ramp, black→red→white) onto the product's `_EmissionMap` in real time;
+  `heatmapGain` scales accumulation. The attention map is a fixed 256×256
+  texture, so the cost is bounded regardless of feature-map resolution.
+- **Heatmap export** (`saveHeatmapImage`): on session stop, writes the final
+  heatmap(s) as PNG next to the recording (requires `aoiLogging`).
+- **Debug log** (`aoiDebugLog`): 1 Hz console line with gaze direction, nearest
+  raycast hit + its shader, and demo-product status — for diagnosing tracking
+  on unknown scenes.
 
-- `FeatureMapSpawner.cs` instantiates the demo box (`Resources/FeatureMapDemo/DemoBox`) and assigns the
-  feature map at runtime; the texture needs *Read/Write Enabled* (already set in its `.meta`).
+### Offline analysis
 
-## Setup
+```bash
+python analysis/aoi_report.py Recordings/<session-prefix>   # single session
+python analysis/aoi_report.py --batch Recordings/           # aggregate across sessions
+```
 
-- Open Unity, switch to the Android platform, and build the APK for the PICO 4 Enterprise.
-- Multi-user scenes need Normcore app credentials configured.
+Reports dwell/fixation summaries, transition matrices, time-to-first-fixation,
+scanpath statistics, and a UV gaze heatmap. Stdlib only, no dependencies.
+`analysis/ci_check_aoi_v4.py` is a static regression gate for the pipeline
+internals (`--self-test` checks run without Unity).
 
-## Log locations
+## Data locations & alignment
 
-- Editor: `Recordings/` in the project root, plus the Unity Console
-  (`%LOCALAPPDATA%\Unity\Editor\Editor.log`)
-- On device: `adb logcat -s Unity` for logs; research CSVs under
-  `Android/data/<package>/files/Recordings/` (pull with `analysis/pull_device_recordings.py`)
+- Editor: `Recordings/` in the project root; console log in
+  `%LOCALAPPDATA%\Unity\Editor\Editor.log`
+- Device: research CSVs under `Android/data/<package>/files/Recordings/`,
+  runtime logs via `adb logcat -s Unity`
+- Timestamps: Unix epoch ms (alignable with the eye-tracking CSVs) plus local
+  wall-clock strings; rows are flushed per write.
 
-## Face Tracking
+## Appendix: setup notes
 
-![img/ft-manager-settings.png](img/ft-manager-settings.png)
+### Face tracking
 
-To enable Face Tracking, you need to pick a Face Tracking Mode on PXR_Manager.
+Pick a face tracking mode on `PXR_Manager`: **Hybrid** (52 blend shapes +
+20 visemes), **Face Only** (52 blend shapes), or **Lipsync Only** (20 visemes).
 
-Hybrid: Enable face tracking and lipsync. Uses all 52 blend shapes and 20 visemes.
+![face tracking settings](img/ft-manager-settings.png)
 
-Face Only: Enable face tracking only. Uses all 52 blend shapes.
+### Inverse kinematics (how-tos)
 
-Lipsync Only: Enable lipsync only. Uses all 20 visemes.
+- Animated arms: <https://www.youtube.com/watch?v=tBYl-aSxUe0>
+- Animated legs: <https://youtu.be/W2_MtYSPaM>
+- Walk cycle: <https://youtu.be/8REDoRu7Tsw> · newer version:
+  <https://www.youtube.com/watch?v=v47lmqfrQ9s&t=200s>
+- Sinoidal approach: <https://www.youtube.com/watch?v=MYOjQICbd8I> ·
+  <https://www.youtube.com/watch?v=1Xr3jB8k1g>
 
-## Inverse Kinematics
+### Ready Player Me
 
-### Howto Animated
-
-- Arms: https://www.youtube.com/watch?v=tBYl-aSxUe0
-- Legs: https://youtu.be/W2_MtYSPaM
-- Walk: https://youtu.be/8REDoRu7Tsw
-
-- New Version: https://www.youtube.com/watch?v=v47lmqfrQ9s&t=200s
-
-### Howto Sinoid
-
-- Part 1: https://www.youtube.com/watch?v=MYOjQICbd8I
-- Part 2: https://www.youtube.com/watch?v=1Xr3jB8k1g
-
-# Readyplayerme hints
-- Right morph targets and quality: https://models.readyplayer.me/649716ff38ad7f783a122407.glb?quality=low&textureAtlas=none&morphTargets=ARKit,Oculus%20Visemes,mouthSmile
-- Comparison with VR upper-half avatars as possible extension: https://vr.readyplayer.me/
-
-Failed API-Calls:
-- No morph targets: https://models.readyplayer.me/649716ff38ad7f783a122407.glb?quality=high?morphTargets=ARKit,Oculus%20Visemes
-- Wrong morph targets: https://models.readyplayer.me/649716ff38ad7f783a122407.glb?quality=low&morphTargets=ARKit,Oculus%20Visemes
+- Working avatar URL (correct morph targets + quality):
+  <https://models.readyplayer.me/649716ff38ad7f783a122407.glb?quality=low&textureAtlas=none&morphTargets=ARKit,Oculus%20Visemes,mouthSmile>
+- Known-bad URLs (for reference): `quality=high?morphTargets=…` (broken query
+  separator → no morph targets) and `quality=low&morphTargets=ARKit,Oculus%20Visemes`
+  (wrong morph targets)
+- Upper-half avatar comparison: <https://vr.readyplayer.me/>
