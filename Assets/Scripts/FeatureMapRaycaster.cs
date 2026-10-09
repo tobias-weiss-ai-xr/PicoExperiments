@@ -226,9 +226,11 @@ public class FeatureMapRaycaster : MonoBehaviour
                 Renderer r = dbg.transform.GetComponent<Renderer>();
                 nearest = $"{dbg.transform.name} [{(r && r.sharedMaterial ? r.sharedMaterial.shader.name : "no-renderer")}]";
             }
-            string box = FeatureMapSpawner.Spawned
-                ? $"boxAt={FeatureMapSpawner.BoxPosition:F1} dist={(FeatureMapSpawner.BoxPosition - cameraTransform.position).magnitude:F1}m"
-                : "box=NOT-SPAWNED";
+            string box = FeatureMapSpawner.BoxPositions.Count == 0
+                ? "boxes=NOT-SPAWNED"
+                : $"boxes={FeatureMapSpawner.BoxPositions.Count} " +
+                  string.Join("; ", FeatureMapSpawner.BoxPositions.ConvertAll(
+                      p => $"{p:F1} d={(p - cameraTransform.position).magnitude:F1}m"));
             Debug.Log($"[AoI] fwd={fwd:F2} nearest={nearest} {box}");
         }
         _gazeFwd = fwd;

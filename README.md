@@ -73,7 +73,7 @@ raycaster resolves the gaze ray to an area label.
 |---|---|
 | `FeatureMapRaycaster.cs` | Per-frame gaze ray (20 m from `PlayerCameraRoot`), area classification, all logging; settings via inspector checkboxes |
 | `FeatureMap.shader` | URP Lit derivative rendering the feature map; texel colors encode areas (red = *Details*, green = *Advertisement*, blue = *Logo*) |
-| `FeatureMapSpawner.cs` | Instantiates the demo product (`Resources/FeatureMapDemo/DemoBox`) with collider and feature map at runtime (texture needs *Read/Write Enabled*, already set) |
+| `FeatureMapSpawner.cs` | Instantiates `count` demo products (`Resources/FeatureMapDemo/DemoBox`) in a row on `Spawn` (inspector: `count`, `spacing`); each is tracked and heatmap-exported independently as `DemoBox_N` |
 | `FeatureMapDisplay.cs` | Shows the current area label on TMP text (quick testing) |
 | `SensorTracking/EyeTrackingManager.cs` | PICO combined eye gaze (24 Hz, validity-checked); provides the event consumed by the raycaster |
 

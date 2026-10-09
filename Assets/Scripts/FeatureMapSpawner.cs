@@ -1,12 +1,14 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class FeatureMapSpawner : MonoBehaviour
 {
-    // Diagnostics for "why did a session record zero hits": spawner outcome + box location
-    public static bool Spawned;
-    public static Vector3 BoxPosition;
+    // Diagnostics: spawner outcome + all product locations (read by aoiDebugLog)
+    public static readonly List<Vector3> BoxPositions = new List<Vector3>();
 
-    private GameObject instance;
+    [SerializeField] int count = 1;        // number of demo products, centered on Spawn
+    [SerializeField] float spacing = 1.5f; // meters between neighboring products
+
     private Shader shader;
     void Awake()
     {
@@ -19,18 +21,6 @@ public class FeatureMapSpawner : MonoBehaviour
             Debug.LogError("Prototype 'FeatureMapDemo/DemoBox' not found in Resources.");
             return;
         }
-
-        // Instance
-        instance = GameObject.Instantiate(prototype);
-        instance.AddComponent<MeshCollider>();
-        GameObject handle = new GameObject();
-        handle.transform.SetParent(instance.transform);
-        handle.transform.localPosition = new Vector3(-0.0022f, -0.0022f, -0.0022f);
-        Vector3 targetPosition = GameObject.Find("Spawn").transform.position;
-        instance.transform.position = targetPosition + (instance.transform.position - handle.transform.position);
-        MeshRenderer rend = instance.GetComponent<MeshRenderer>();
-        rend.material.shader = shader;
-
         // Feature map needs Read/Write enabled on import (set in its .meta)
         Texture2D tex = Resources.Load<Texture2D>("FeatureMapDemo/FeatureMap");
         if (tex == null)
@@ -38,8 +28,30 @@ public class FeatureMapSpawner : MonoBehaviour
             Debug.LogError("Feature map 'FeatureMapDemo/FeatureMap' not found in Resources.");
             return;
         }
-        rend.material.SetTexture("_FeatureMap", tex);
-        Spawned = true;
-        BoxPosition = instance.transform.position;
+        Transform anchor = GameObject.Find("Spawn")?.transform;
+        if (anchor == null)
+        {
+            Debug.LogError("FeatureMapSpawner: no 'Spawn' object in scene.");
+            return;
+        }
+
+        for (int i = 0; i < count; i++)
+        {
+            // Row along the anchor's right vector, centered on the anchor
+            Vector3 target = anchor.position + anchor.right * ((i - (count - 1) * 0.5f) * spacing);
+
+            GameObject instance = Instantiate(prototype);
+            instance.name = $"DemoBox_{i + 1}";
+            instance.AddComponent<MeshCollider>();
+            GameObject handle = new GameObject();
+            handle.transform.SetParent(instance.transform);
+            handle.transform.localPosition = new Vector3(-0.0022f, -0.0022f, -0.0022f);
+            instance.transform.position = target + (instance.transform.position - handle.transform.position);
+
+            MeshRenderer rend = instance.GetComponent<MeshRenderer>();
+            rend.material.shader = shader;
+            rend.material.SetTexture("_FeatureMap", tex);
+            BoxPositions.Add(instance.transform.position);
+        }
     }
 }
