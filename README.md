@@ -73,7 +73,7 @@ raycaster resolves the gaze ray to an area label.
 |---|---|
 | `FeatureMapRaycaster.cs` | Per-frame gaze ray (20 m from `PlayerCameraRoot`), area classification, all logging; settings via inspector checkboxes |
 | `FeatureMap.shader` | URP Lit derivative rendering the feature map; texel colors encode areas (red = *Details*, green = *Advertisement*, blue = *Logo*) |
-| `FeatureMapSpawner.cs` | Instantiates `count` demo products (`Resources/FeatureMapDemo/DemoBox`) in a row on `Spawn` (inspector: `count`, `spacing`); each is tracked and heatmap-exported independently as `DemoBox_N` |
+| `FeatureMapSpawner.cs` | Instantiates `count` demo products (`Resources/FeatureMapDemo/DemoBox`) in a row on `Spawn` (inspector: `count`, `spacing`); each is tracked and heatmap-exported independently as `DemoBox_N`; `slotMaterials` assigns distinct visuals per slot (real visual search) |
 | `FeatureMapDisplay.cs` | Shows the current area label on TMP text (quick testing) |
 | `SensorTracking/EyeTrackingManager.cs` | PICO combined eye gaze (24 Hz, validity-checked); provides the event consumed by the raycaster |
 
@@ -122,8 +122,8 @@ raycaster per participant; filenames are unique per run.
 | `…-aoi-raw.csv` | Committed area sampled at 10 Hz with world hit point and surface UV (`U;V`) for post-hoc surface mapping |
 | `…-aoi-fixations.csv` | Fixations: `StartEpochMs;EndEpochMs;DurationInSec;Area` |
 | `…-aoi-session.json` | Manifest with pipeline id, participant, scene, timestamps, every knob value, feature-map info |
-| `…-aoi-tasks.csv` | One row per task trial (`AoiTaskManager`): `StartEpochMs;LogTime;Target;Found;SearchSec;Seed` |
 | `…-aoi-perf.csv` | 1 Hz FPS samples when `logPerformance` is enabled (data-validity check: eye-tracking data from a dropped-frame session is suspect) |
+| `…-aoi-tasks.csv` | One row per task trial (`AoiTaskManager`): `StartEpochMs;LogTime;Target;Found;SearchSec;Seed` |
 | `…-aoi-heatmap-<object>.png` | Final attention heatmap(s) when `saveHeatmapImage` is enabled |
 
 ### Visual-search task (AoiTaskManager)
@@ -170,7 +170,9 @@ python analysis/aoi_report.py --batch Recordings/           # aggregate across s
 ```
 
 Reports dwell/fixation summaries, transition matrices, time-to-first-fixation,
-scanpath statistics, and a UV gaze heatmap. Stdlib only, no dependencies.
+scanpath statistics, a UV gaze heatmap, task trials (found rate + RT per
+target, `-tasks.csv`) and FPS percentiles (`-perf.csv`, with a validity
+warning below 40 fps). Stdlib only, no dependencies.
 `analysis/ci_check_aoi_v4.py` is a static regression gate for the pipeline
 internals (`--self-test` checks run without Unity).
 

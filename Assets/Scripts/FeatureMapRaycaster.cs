@@ -392,7 +392,7 @@ public class FeatureMapRaycaster : MonoBehaviour
         if (targetRend.sharedMaterial.shader.name != "Universal Render Pipeline/FeatureMap")
             return "None";
         
-        hit.hitObject = targetHit.transform.name;
+        hit.hitObject = CsvSafe(targetHit.transform.name);
         hit.point = targetHit.point;
         hit.uv = targetHit.textureCoord;
 

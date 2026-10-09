@@ -217,6 +217,53 @@ def analyze_raw(path, prefix):
     print(f"heatmap: {out}")
 
 
+def analyze_tasks(path):
+    rows = read_csv(path)
+    print(f"\n== tasks ({os.path.basename(path)}) ==")
+    if not rows:
+        print("(empty)")
+        return
+    by_target = {}
+    for r in rows:
+        target = r["Target"] or "?"
+        d = by_target.setdefault(target, [0, 0])
+        d[0] += 1
+        d[1] += 1 if r["Found"].strip().lower() == "true" else 0
+    print(f"{'Target':<16}{'n':>5}{'found':>7}{'rate%':>7}{'mean_s':>9}{'median_s':>10}")
+    for target, (n, found) in sorted(by_target.items()):
+        found_times = [float(r["SearchSec"]) for r in rows
+                       if r["Target"] == target and r["Found"].strip().lower() == "true"]
+        mean_s = fmt(sum(found_times) / len(found_times)) if found_times else "-"
+        med_s = fmt(statistics.median(found_times)) if found_times else "-"
+        rate = 100.0 * found / n
+        print(f"{target:<16}{n:>5}{found:>7}{fmt(rate, 1):>7}{mean_s:>9}{med_s:>10}")
+    all_secs = [float(r["SearchSec"]) for r in rows if r["Found"].strip().lower() == "true"]
+    if all_secs:
+        print(f"overall found RT: n={len(all_secs)} mean={fmt(sum(all_secs) / len(all_secs))}s "
+              f"median={fmt(statistics.median(all_secs))}s")
+
+
+def analyze_perf(path):
+    rows = read_csv(path)
+    print(f"\n== perf ({os.path.basename(path)}) ==")
+    if not rows:
+        print("(empty)")
+        return
+    fps = sorted(float(r["Fps"]) for r in rows)
+    n = len(fps)
+    mn = min(fps)
+    mean = sum(fps) / n
+    med = fps[n // 2]
+    p10 = fps[max(0, n // 10)]
+    p50 = fps[n // 2]
+    p95 = fps[min(n - 1, (95 * n) // 100)]
+    mx = max(fps)
+    print(f"n={n} min={fmt(mn, 1)} p10={fmt(p10, 1)} median={fmt(p50, 1)} "
+          f"p95={fmt(p95, 1)} max={fmt(mx, 1)}fps (mean {fmt(mean, 1)})")
+    if mn < 40:
+        print("  WARNING: frames dropped below 40 fps - eye/head data validity at risk")
+
+
 def main():
     args = sys.argv[1:]
     if not args:
@@ -233,7 +280,9 @@ def main():
         prefix += "-aoi"
     for suffix, fn in [(".csv", analyze_transitions),
                        ("-fixations.csv", analyze_fixations),
-                       ("-raw.csv", analyze_raw)]:
+                       ("-raw.csv", analyze_raw),
+                       ("-tasks.csv", analyze_tasks),
+                       ("-perf.csv", analyze_perf)]:
         path = prefix + suffix
         if os.path.exists(path):
             fn(path, prefix) if suffix == "-raw.csv" else fn(path)

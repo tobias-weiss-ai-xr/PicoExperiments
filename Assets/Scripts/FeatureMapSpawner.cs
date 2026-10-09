@@ -10,6 +10,7 @@ public class FeatureMapSpawner : MonoBehaviour
     [SerializeField] float spacing = 1.5f; // meters between neighboring products
     [SerializeField] float boxScale = 2f;  // uniform scale-up of each product (readability at distance)
     [SerializeField] Transform platform;   // box the products sit on; widened along the row to fit
+    [SerializeField] Material[] slotMaterials; // optional: distinct visuals per slot (real visual search); applied to slot i
 
     private Shader shader;
     private Renderer _firstProductRend;
@@ -58,6 +59,13 @@ public class FeatureMapSpawner : MonoBehaviour
             MeshRenderer rend = instance.GetComponent<MeshRenderer>();
             rend.material.shader = shader;
             rend.material.SetTexture("_FeatureMap", tex);
+            if (slotMaterials != null && i < slotMaterials.Length && slotMaterials[i] != null)
+            {
+                // keep the pipeline's shader, swap the surface look per slot
+                rend.material.color = slotMaterials[i].color;
+                if (slotMaterials[i].HasProperty("_MainTex") && slotMaterials[i].mainTexture != null)
+                    rend.material.mainTexture = slotMaterials[i].mainTexture;
+            }
 
             // Place by measured bounds: product bottom-center onto the spawn
             // target (y = platform surface if available). Independent of the
