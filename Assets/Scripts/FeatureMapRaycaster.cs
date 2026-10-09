@@ -37,6 +37,10 @@ public class FeatureMapRaycaster : MonoBehaviour
     // attention heatmap: per-renderer accumulation textures keyed by renderer instance ID
     // attention heatmap: raw hit counts per renderer (CPU-side), painted to an
     // RGBA emission texture on the raw-sample cadence with a log ramp
+    // Attention heatmaps live at a fixed low resolution: bounded paint cost
+    // and memory regardless of the feature-map size (2048^2 buffers = ~100 MB
+    // alloc + multi-million-texel repaints froze the frame on first hit).
+    const int HeatmapSize = 256;
     Dictionary<int, Texture2D> _heatmapTex = new Dictionary<int, Texture2D>();
     Dictionary<int, float[]> _heatCounts = new Dictionary<int, float[]>();
     Dictionary<int, Color[]> _heatPixels = new Dictionary<int, Color[]>();
@@ -320,10 +324,10 @@ public class FeatureMapRaycaster : MonoBehaviour
             int rid = targetRend.GetInstanceID();
             if (!_heatmapTex.TryGetValue(rid, out Texture2D heatTex))
             {
-                heatTex = new Texture2D(tex.width, tex.height, TextureFormat.RGBA32, false);
+                heatTex = new Texture2D(HeatmapSize, HeatmapSize, TextureFormat.RGBA32, false);
                 _heatmapTex[rid] = heatTex;
-                _heatCounts[rid] = new float[tex.width * tex.height];
-                _heatPixels[rid] = new Color[tex.width * tex.height]; // Color.black default
+                _heatCounts[rid] = new float[HeatmapSize * HeatmapSize];
+                _heatPixels[rid] = new Color[HeatmapSize * HeatmapSize]; // Color.black default
                 _heatMax[rid] = 0f;
                 heatTex.SetPixels(_heatPixels[rid]);
                 heatTex.Apply(false);
@@ -331,10 +335,11 @@ public class FeatureMapRaycaster : MonoBehaviour
                 targetRend.material.SetColor("_EmissionColor", Color.white); // default is black = invisible
                 targetRend.material.EnableKeyword("_EMISSION");
             }
-            int px = Mathf.Clamp((int)texel.x, 0, heatTex.width - 1);
-            int py = Mathf.Clamp((int)texel.y, 0, heatTex.height - 1);
+            Vector2 huv = targetHit.textureCoord;
+            int px = Mathf.Clamp((int)(huv.x * HeatmapSize), 0, HeatmapSize - 1);
+            int py = Mathf.Clamp((int)(huv.y * HeatmapSize), 0, HeatmapSize - 1);
             float[] counts = _heatCounts[rid];
-            int idx = py * heatTex.width + px;
+            int idx = py * HeatmapSize + px;
             counts[idx] += heatmapGain;
             if (counts[idx] > _heatMax[rid])
                 _heatMax[rid] = counts[idx];

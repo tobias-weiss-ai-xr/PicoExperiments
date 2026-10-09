@@ -124,3 +124,22 @@ grows never; scene has far fewer); multi-material renderers judge material[0]
 only; fixation window keeps a >20 ms stale sample after long hitches (self-heals
 next frame); heatmap normalization is session-max (early texels dim as max
 grows - intended adaptive behavior).
+
+## Hotfix: heatmap frame stall / "view redirect" (2026-10-09)
+
+Symptom report: with attentionHeatmap enabled, reaching an AOI made the
+view "get redirected". Session evidence: the heatmap-on recording
+(08:25:33) shows 139/139 raw samples = None with the app effectively
+dead at AOI contact; the heatmap-off run 25 s later tracks fine.
+
+Root cause: heat buffers were sized by the FEATURE MAP (2048x2048).
+First feature-map hit allocated ~101 MB (counts + Color[] + texture) in
+one frame and PaintHeatmaps looped 4.2M texels x 10 Hz with Mathf.Log -
+a massive first-hit hitch (PICO compositor reprojects/recenters through
+it = literal view jump) plus permanent stutter.
+
+Fix: attention texture is a fixed 256x256 UV-scaled map independent of
+the feature-map resolution. Alloc 1.6 MB per renderer, paint 65k texels
+(64x cut); log-normalized ramp and all other behavior unchanged.
+Emission verified functional via stock URP LitInput/LitForwardPass
+includes (_EMISSION keyword + _EmissionMap/_EmissionColor).
