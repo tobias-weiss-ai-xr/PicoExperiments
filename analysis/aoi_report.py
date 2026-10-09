@@ -263,6 +263,41 @@ def analyze_tasks(path):
               f"median={fmt(statistics.median(all_secs))}s")
 
 
+def analyze_scanpaths(tasks_path, raw_path):
+    """Slice the 10 Hz raw trace by task-trial boundaries and print, per trial,
+    the ordered object-visit path and how many objects were visited before the
+    target (search efficiency)."""
+    rows = read_csv(tasks_path)
+    raw = read_csv(raw_path)
+    if not rows or not raw:
+        return
+    print(f"\n== per-trial scanpath ({os.path.basename(tasks_path)}) ==")
+    for ti, t in enumerate(rows):
+        try:
+            t0 = int(t["StartEpochMs"])
+            rt = float(t["SearchSec"])
+        except (KeyError, ValueError):
+            continue
+        t1 = t0 + int(rt * 1000) + 50  # found (or timeout) + small pad
+        areas = []
+        for r in raw:
+            try:
+                e = int(r["EpochMs"])
+            except (KeyError, ValueError):
+                continue
+            if not (t0 <= e <= t1):
+                continue
+            a = r["Area"]
+            if a and a != "None" and (not areas or areas[-1] != a):
+                areas.append(a)
+        target = t["Target"]
+        pre = areas.index(target) if target in areas else -1
+        found = t["Found"].strip().lower() == "true"
+        path = " -> ".join(areas) if areas else "(no object hits)"
+        print(f"  {ti + 1}: target={target} found={found} rt={fmt(rt)}s "
+              f"pre_target_visits={pre}  {path}")
+
+
 def analyze_perf(path):
     rows = read_csv(path)
     print(f"\n== perf ({os.path.basename(path)}) ==")
@@ -308,6 +343,12 @@ def main():
             fn(path, prefix) if suffix == "-raw.csv" else fn(path)
         else:
             print(f"(missing: {path})")
+
+    # scanpath needs both the task boundaries and the raw trace
+    tp = prefix + "-tasks.csv"
+    rp = prefix + "-raw.csv"
+    if os.path.exists(tp) and os.path.exists(rp):
+        analyze_scanpaths(tp, rp)
 
 
 if __name__ == "__main__":

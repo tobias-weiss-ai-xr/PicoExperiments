@@ -89,6 +89,8 @@ public class AoiTaskManager : MonoBehaviour
 
     public void Begin()
     {
+        if (_writer != null || _running)
+            return; // already started or between trials - no double-start
         if (string.IsNullOrEmpty(_raycaster.SessionLogPath))
         {
             Debug.LogError("AoiTaskManager: no AoI session folder - enable aoiLogging on the raycaster.");

@@ -125,6 +125,9 @@ public class FeatureMapRaycaster : MonoBehaviour
         else if (saveHeatmapImage)
             Debug.LogWarning("FeatureMapRaycaster: saveHeatmapImage needs aoiLogging (or fixationLogging) to know where to write; heatmap PNGs will not be saved.");
 
+        if (saveHeatmapImage && !attentionHeatmap)
+            Debug.LogWarning("FeatureMapRaycaster: saveHeatmapImage without attentionHeatmap will produce no heatmaps - enable both.");
+
         if (useEyeTracking)
         {
             // Convention in this project (EyeTrackingInfo/Logging): the manager lives on a
