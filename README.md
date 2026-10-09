@@ -60,6 +60,12 @@ Gaze-based tracking of product areas of interest without any scene wiring:
 products carry a *feature map* texture whose texel colors encode areas, and a
 raycaster resolves the gaze ray to an area label.
 
+![Object tracking demo](img/object-tracking-demo.png)
+*The ObjectTracking scene: gaze is resolved to product areas in real time.*
+
+![Unity VR environment](img/unity-vr-environment.png)
+*The VR shopping environment in the Unity editor.*
+
 **Core components** (`Assets/Scripts/`):
 
 | File | Role |
