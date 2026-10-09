@@ -27,9 +27,15 @@ public class FeatureMapRaycaster : MonoBehaviour
     [Header("Gaze source")]
     [Tooltip("Cast the AoI ray along the (combined, world-space) PICO eye-gaze direction instead of head forward when valid eye data is available; falls back to head forward otherwise")]
     [SerializeField] bool useEyeTracking = false;
+    [Header("Attention heatmap")]
+    [SerializeField] bool attentionHeatmap = false;
+    [SerializeField] float heatmapGain = 1.0f;
 
     // writers (AoI transitions, raw trace, fixations)
     StreamWriter _aoiWriter, _rawWriter, _fixWriter;
+
+    // attention heatmap: per-renderer accumulation textures keyed by renderer instance ID
+    Dictionary<int, Texture2D> _heatmapTex = new Dictionary<int, Texture2D>();
 
     // current committed area + its start
     string _currentAoi = "None";
@@ -197,6 +203,9 @@ public class FeatureMapRaycaster : MonoBehaviour
                 $"{hit.uv.x.ToString("F4", CultureInfo.InvariantCulture)};{hit.uv.y.ToString("F4", CultureInfo.InvariantCulture)}");
             _rawWriter.Flush();
             _nextRawSampleMs = nowMs + (long)(1000f / Mathf.Max(rawSampleRate, 0.01f));
+            if (attentionHeatmap)
+                foreach (var kvp in _heatmapTex)
+                { kvp.Value.Apply(false); }
         }
 
         if (_fixWriter != null)
@@ -234,6 +243,23 @@ public class FeatureMapRaycaster : MonoBehaviour
         texel.x *= tex.width;
         texel.y *= tex.height;
         color = tex.GetPixel((int)texel.x, (int)texel.y);
+        
+        if (attentionHeatmap && color != Color.clear)
+        {
+            int rid = rend.GetInstanceID();
+            if (!_heatmapTex.TryGetValue(rid, out Texture2D heatTex))
+            {
+                heatTex = new Texture2D(tex.width, tex.height, TextureFormat.RFloat, false);
+                _heatmapTex[rid] = heatTex;
+                rend.material.SetTexture("_EmissionMap", heatTex);
+                rend.material.EnableKeyword("_EMISSION");
+            }
+            int px = Mathf.Clamp((int)texel.x, 0, heatTex.width - 1);
+            int py = Mathf.Clamp((int)texel.y, 0, heatTex.height - 1);
+            float val = heatTex.GetPixel(px, py).r + heatmapGain;
+            heatTex.SetPixel(px, py, new Color(val, val, val, val));
+        }
+        
         return ClassifyAoi(color);
     }
 
@@ -385,6 +411,9 @@ public class FeatureMapRaycaster : MonoBehaviour
             }
         }
         _aoiWriter = _rawWriter = _fixWriter = null;
+        foreach (var kvp in _heatmapTex)
+            Destroy(kvp.Value);
+        _heatmapTex.Clear();
     }
 
     // Self-describing recording metadata (aoi-v3) for replicability. JsonUtility-
