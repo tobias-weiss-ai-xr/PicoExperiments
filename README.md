@@ -122,7 +122,8 @@ raycaster per participant; filenames are unique per run.
 | `…-aoi-raw.csv` | Committed area sampled at 10 Hz with world hit point and surface UV (`U;V`) for post-hoc surface mapping |
 | `…-aoi-fixations.csv` | Fixations: `StartEpochMs;EndEpochMs;DurationInSec;Area` |
 | `…-aoi-session.json` | Manifest with pipeline id, participant, scene, timestamps, every knob value, feature-map info |
-| `…-aoi-tasks.csv` | One row per task trial (`AoiTaskManager`): `StartEpochMs;LogTime;Target;Found;SearchSec` |
+| `…-aoi-tasks.csv` | One row per task trial (`AoiTaskManager`): `StartEpochMs;LogTime;Target;Found;SearchSec;Seed` |
+| `…-aoi-perf.csv` | 1 Hz FPS samples when `logPerformance` is enabled (data-validity check: eye-tracking data from a dropped-frame session is suspect) |
 | `…-aoi-heatmap-<object>.png` | Final attention heatmap(s) when `saveHeatmapImage` is enabled |
 
 ### Visual-search task (AoiTaskManager)
@@ -133,6 +134,21 @@ assign it, done. Each trial completes when the committed AOI equals the target
 — works with feature-map areas and with `wholeObjectAoi` (target = object
 name) — or on timeout. Found time per trial lands in `…-tasks.csv`.
 `autostart` can be turned off and `Begin()` called from custom flow control.
+
+Experiment conditions on the task manager:
+
+- **`randomizeTrials` + `randomSeed`** — Fisher-Yates shuffle of the trial
+  order; the seed (0 = device clock) is logged in every `tasks.csv` row for
+  reproducibility.
+- **`shuffleBetweenTrials`** — re-randomizes the spawned product positions via
+  `FeatureMapSpawner.ShuffleRow(seed)`, deterministic per trial index, so
+  participants can't learn static positions.
+- **`heatmapPerTrial`** — saves a heatmap snapshot per trial
+  (`…-heatmap-<object>-trialN.png`), showing how the search evolved.
+- **`foundClip` / `timeoutClip`** — optional audio feedback at trial end.
+
+The raycaster also prints a per-area dwell summary to the console when a
+session ends (handy on-device, where the offline report isn't available).
 
 ### Live visualization & debugging (all off by default)
 

@@ -32,6 +32,7 @@ public class FeatureMapRaycaster : MonoBehaviour
     [SerializeField] bool aoiDebugLog = false; // 1 Hz: ray origin/direction, nearest hit + shader, box status
     [SerializeField] bool saveHeatmapImage = false; // write final heatmaps as PNGs next to the recording on stop
     [SerializeField] bool wholeObjectAoi = false; // example mode: each object is one AOI (area = object name), no feature map needed
+    [SerializeField] bool logPerformance = false; // 1 Hz FPS sample to <prefix>-perf.csv (data-validity check)
     [SerializeField] float heatmapGain = 1.0f;
 
     // writers (AoI transitions, raw trace, fixations)
@@ -69,6 +70,12 @@ public class FeatureMapRaycaster : MonoBehaviour
     long _nextDebugLogMs;
     string _logPath = "";
     string _sessionPrefix = "";
+
+    // Experiment kit state: perf sampling, per-area dwell summary (closed
+    // intervals)
+    StreamWriter _perfWriter;
+    float _fpsFrames, _fpsTime;
+    readonly Dictionary<string, (float sum, int n)> _dwell = new Dictionary<string, (float, int)>();
 
     // Read-only session info for companion components (e.g. AoiTaskManager):
     // valid after Start when aoiLogging (or fixationLogging) is on, else empty.
@@ -169,6 +176,8 @@ public class FeatureMapRaycaster : MonoBehaviour
             useEyeTracking = useEyeTracking,
             attentionHeatmap = attentionHeatmap,
             saveHeatmapImage = saveHeatmapImage,
+            wholeObjectAoi = wholeObjectAoi,
+            logPerformance = logPerformance,
             heatmapGain = heatmapGain,
             featureMapTexture = FindFeatureMapTexture(out texW, out texH),
             featureMapWidth = texW,
@@ -185,6 +194,11 @@ public class FeatureMapRaycaster : MonoBehaviour
             _rawWriter = new StreamWriter(UniquePath(logPath, baseName + "-raw.csv"));
             _rawWriter.WriteLine("EpochMs;LogTime;Area;HitObject;PointX;PointY;PointZ;U;V");
             _nextRawSampleMs = NowMs();
+        }
+        if (logPerformance)
+        {
+            _perfWriter = new StreamWriter(UniquePath(logPath, baseName + "-perf.csv"), false, new System.Text.UTF8Encoding(true));
+            _perfWriter.WriteLine("EpochMs;LogTime;Fps");
         }
         if (fixationLogging)
         {
@@ -265,6 +279,17 @@ public class FeatureMapRaycaster : MonoBehaviour
         {
             PaintHeatmaps();
             _nextHeatPaintMs = nowMs + 100; // 10 Hz repaint cap, independent of the raw writer
+        }
+
+        if (_perfWriter != null)
+        {
+            _fpsTime += Time.unscaledDeltaTime;
+            _fpsFrames += 1f;
+            if (_fpsTime >= 1f)
+            {
+                _perfWriter.WriteLine($"{nowMs};{LogTime()};{(_fpsFrames / _fpsTime).ToString("F1", CultureInfo.InvariantCulture)}");
+                _fpsFrames = _fpsTime = 0f;
+            }
         }
 
         if (_fixWriter != null)
@@ -494,6 +519,8 @@ public class FeatureMapRaycaster : MonoBehaviour
             float duration = (nowMs - _currentStartMs) / 1000f;
             _aoiWriter.WriteLine($"{_currentStartMs};{LogTime()};{Sec(duration)};{_currentAoi};{_currentHitObject}");
             _aoiWriter.Flush(); // rows are rare; flush each so a crash loses nothing
+            _dwell.TryGetValue(_currentAoi, out var d);
+            _dwell[_currentAoi] = (d.Item1 + duration, d.Item2 + 1);
         }
         _currentAoi = newAoi;
         _currentHitObject = hitObject;
@@ -575,7 +602,7 @@ public class FeatureMapRaycaster : MonoBehaviour
             SwitchAoi("None", nowMs, ""); // close the open interval
         EndFixation(nowMs); // close the open fixation
 
-        foreach (var writer in new[] { _aoiWriter, _rawWriter, _fixWriter })
+        foreach (var writer in new[] { _aoiWriter, _rawWriter, _fixWriter, _perfWriter })
         {
             if (writer != null)
             {
@@ -583,9 +610,16 @@ public class FeatureMapRaycaster : MonoBehaviour
                 writer.Close();
             }
         }
-        _aoiWriter = _rawWriter = _fixWriter = null;
+        _aoiWriter = _rawWriter = _fixWriter = _perfWriter = null;
+        if (_dwell.Count > 0)
+        {
+            var sb = new System.Text.StringBuilder("[AoI] session summary (dwell, closed intervals):\n");
+            foreach (var kv in _dwell)
+                sb.Append($"  {kv.Key}: {kv.Value.Item1:F1}s in {kv.Value.Item2} intervals\n");
+            Debug.Log(sb.ToString());
+        }
         if (saveHeatmapImage)
-            SaveHeatmapImages();
+            SaveHeatmapImages("");
         foreach (var kvp in _heatmapTex)
             Destroy(kvp.Value);
         _heatmapTex.Clear();
@@ -598,7 +632,7 @@ public class FeatureMapRaycaster : MonoBehaviour
 
     // Write the current attention heatmaps as PNGs next to the recording
     // files. Fixed filenames: the latest state overwrites the previous one.
-    void SaveHeatmapImages()
+    void SaveHeatmapImages(string suffix)
     {
         if (_heatmapTex.Count == 0 || string.IsNullOrEmpty(_logPath) || string.IsNullOrEmpty(_sessionPrefix))
             return;
@@ -610,16 +644,20 @@ public class FeatureMapRaycaster : MonoBehaviour
             byte[] png = kvp.Value.EncodeToPNG();
             if (png == null)
                 continue;
-            File.WriteAllBytes(Path.Combine(_logPath, _sessionPrefix + "-heatmap-" + SafeFileName(name) + ".png"), png);
+            File.WriteAllBytes(Path.Combine(_logPath, _sessionPrefix + "-heatmap-" + SafeFileName(name) + suffix + ".png"), png);
         }
     }
+
+    // Snapshot with a distinguishing suffix, e.g. per-trial heatmaps
+    // ("-trial1") from the task manager.
+    public void SaveHeatmapSnapshot(string suffix) => SaveHeatmapImages(suffix);
 
     void OnApplicationPause(bool paused)
     {
         // HOME button backgrounds the app on PICO - OnDestroy may never run,
         // so persist the current heatmap state whenever the app pauses.
         if (paused && saveHeatmapImage)
-            SaveHeatmapImages();
+            SaveHeatmapImages("");
     }
 
     static string SafeFileName(string name)
@@ -651,6 +689,7 @@ public class FeatureMapRaycaster : MonoBehaviour
         public bool attentionHeatmap;
         public bool saveHeatmapImage;
         public bool wholeObjectAoi;
+        public bool logPerformance;
         public float heatmapGain;
         public string featureMapTexture;
         public int featureMapWidth;

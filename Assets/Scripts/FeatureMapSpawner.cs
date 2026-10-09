@@ -15,6 +15,7 @@ public class FeatureMapSpawner : MonoBehaviour
     private Renderer _firstProductRend;
     private Renderer _platRend;
     private Transform _anchor;
+    readonly List<Transform> _spawned = new List<Transform>();
     void Awake()
     {
         BoxPositions.Clear(); // statics survive scene reloads in the editor
@@ -82,6 +83,7 @@ public class FeatureMapSpawner : MonoBehaviour
             rend.material.EnableKeyword("_EMISSION");
 
             if (i == 0) _firstProductRend = rend;
+            _spawned.Add(instance.transform);
             BoxPositions.Add(instance.transform.position);
         }
 
@@ -136,5 +138,20 @@ public class FeatureMapSpawner : MonoBehaviour
         Vector3 pos = _platRend.transform.position;
         pos.x = _anchor.position.x;
         _platRend.transform.position = pos;
+    }
+
+    // Re-randomize product positions along the row (Fisher-Yates over the
+    // existing row slots). Call between trials to prevent position learning;
+    // the seed makes arrangements reproducible across participants.
+    public void ShuffleRow(int seed)
+    {
+        var rnd = new System.Random(seed);
+        for (int i = _spawned.Count - 1; i > 0; i--)
+        {
+            int j = rnd.Next(i + 1);
+            (_spawned[i].position, _spawned[j].position) = (_spawned[j].position, _spawned[i].position);
+        }
+        for (int i = 0; i < _spawned.Count; i++)
+            BoxPositions[i] = _spawned[i].position; // keep the debug list in sync
     }
 }
