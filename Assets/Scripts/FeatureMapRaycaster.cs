@@ -42,7 +42,7 @@ public class FeatureMapRaycaster : MonoBehaviour
     // Attention heatmaps live at a fixed low resolution: bounded paint cost
     // and memory regardless of the feature-map size (2048^2 buffers = ~100 MB
     // alloc + multi-million-texel repaints froze the frame on first hit).
-    const int HeatmapSize = 256;
+    public const int HeatmapSize = 256;
     Dictionary<int, Texture2D> _heatmapTex = new Dictionary<int, Texture2D>();
     Dictionary<int, string> _heatNames = new Dictionary<int, string>();
     Dictionary<int, float[]> _heatCounts = new Dictionary<int, float[]>();

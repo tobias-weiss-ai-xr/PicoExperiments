@@ -13,6 +13,7 @@ public class FeatureMapSpawner : MonoBehaviour
 
     private Shader shader;
     private Renderer _firstProductRend;
+    private Transform _anchor;
     void Awake()
     {
         shader = Shader.Find("Universal Render Pipeline/FeatureMap");
@@ -37,6 +38,7 @@ public class FeatureMapSpawner : MonoBehaviour
             Debug.LogError("FeatureMapSpawner: no 'Spawn' object in scene.");
             return;
         }
+        _anchor = anchor;
 
         for (int i = 0; i < count; i++)
         {
@@ -55,6 +57,20 @@ public class FeatureMapSpawner : MonoBehaviour
             MeshRenderer rend = instance.GetComponent<MeshRenderer>();
             rend.material.shader = shader;
             rend.material.SetTexture("_FeatureMap", tex);
+
+            // Pre-warm the emission shader variant at spawn. Gaze-hit time is
+            // too late: the first _EMISSION compile stalls a frame, and on the
+            // PICO that hitch makes the compositor recenter ("view rotates").
+            // The raycaster swaps in its own heat texture on first hit.
+            Texture2D prewarmHeat = new Texture2D(FeatureMapRaycaster.HeatmapSize,
+                FeatureMapRaycaster.HeatmapSize, TextureFormat.RGBA32, false);
+            var black = new Color[prewarmHeat.width * prewarmHeat.height];
+            prewarmHeat.SetPixels(black);
+            prewarmHeat.Apply(false);
+            rend.material.SetTexture("_EmissionMap", prewarmHeat);
+            rend.material.SetColor("_EmissionColor", Color.white);
+            rend.material.EnableKeyword("_EMISSION");
+
             if (i == 0) _firstProductRend = rend;
             BoxPositions.Add(instance.transform.position);
         }
@@ -69,10 +85,13 @@ public class FeatureMapSpawner : MonoBehaviour
     {
         Transform plat = platform != null ? platform : GameObject.Find("Cube")?.transform;
         Renderer platRend = plat ? plat.GetComponent<Renderer>() : null;
-        if (platRend == null || _firstProductRend == null)
+        MeshFilter mf = _firstProductRend ? _firstProductRend.GetComponent<MeshFilter>() : null;
+        if (platRend == null || mf == null || mf.sharedMesh == null)
             return;
-        float productWidth = _firstProductRend.bounds.size.x;
-        float rowWidth = (BoxPositions.Count - 1) * spacing + productWidth;
+        // Mesh bounds x lossyScale: exact at spawn time (renderer bounds can
+        // lag a frame, which left the last product hanging off the edge).
+        float productWidth = mf.sharedMesh.bounds.size.x * _firstProductRend.transform.lossyScale.x;
+        float rowWidth = 1.1f * ((BoxPositions.Count - 1) * spacing + productWidth);
         float currentWidth = platRend.bounds.size.x;
         if (currentWidth > 0.001f)
         {
@@ -80,5 +99,10 @@ public class FeatureMapSpawner : MonoBehaviour
             ls.x *= rowWidth / currentWidth;
             plat.localScale = ls;
         }
+        // Center the platform under the row (row axis = anchor right; anchor
+        // and platform are world-axis aligned in this scene)
+        Vector3 pos = plat.position;
+        pos.x = _anchor.position.x;
+        plat.position = pos;
     }
 }
