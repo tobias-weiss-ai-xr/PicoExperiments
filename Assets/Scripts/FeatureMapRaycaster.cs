@@ -49,7 +49,8 @@ public class FeatureMapRaycaster : MonoBehaviour
     Dictionary<int, Color[]> _heatPixels = new Dictionary<int, Color[]>();
     Dictionary<int, float> _heatMax = new Dictionary<int, float>();
     HashSet<int> _heatDirty = new HashSet<int>();
-    static readonly RaycastHit[] _rayHits = new RaycastHit[16]; // reused, no per-frame GC
+    static readonly RaycastHit[] _rayHits = new RaycastHit[32]; // reused, no per-frame GC
+    static bool _warnedRaycastTruncation;
 
     // current committed area + its start
     string _currentAoi = "None";
@@ -278,6 +279,13 @@ public class FeatureMapRaycaster : MonoBehaviour
         int n = Physics.RaycastNonAlloc(origin, direction, _rayHits, 20f);
         if (n == 0)
             return "None";
+        // NonAlloc fills the buffer in arbitrary order: if it is full, the
+        // nearest hit may be among the dropped ones -> classification wrong.
+        if (n == _rayHits.Length && !_warnedRaycastTruncation)
+        {
+            _warnedRaycastTruncation = true;
+            Debug.LogWarning("[AoI] raycast hit buffer full (32) - nearest hits may be dropped; enlarge _rayHits.");
+        }
         for (int i = 1; i < n; i++) // insertion sort, n is tiny
         {
             RaycastHit h = _rayHits[i];
@@ -552,7 +560,7 @@ public class FeatureMapRaycaster : MonoBehaviour
             }
         }
         _aoiWriter = _rawWriter = _fixWriter = null;
-        if (saveHeatmapImage && _heatmapTex.Count > 0)
+        if (saveHeatmapImage)
             SaveHeatmapImages();
         foreach (var kvp in _heatmapTex)
             Destroy(kvp.Value);
@@ -564,9 +572,12 @@ public class FeatureMapRaycaster : MonoBehaviour
         _heatDirty.Clear();
     }
 
-    // Write the final attention heatmaps as PNGs next to the recording files.
+    // Write the current attention heatmaps as PNGs next to the recording
+    // files. Fixed filenames: the latest state overwrites the previous one.
     void SaveHeatmapImages()
     {
+        if (_heatmapTex.Count == 0 || string.IsNullOrEmpty(_logPath) || string.IsNullOrEmpty(_sessionPrefix))
+            return;
         if (_heatDirty.Count > 0)
             PaintHeatmaps(); // flush bumps that have not been painted yet
         foreach (var kvp in _heatmapTex)
@@ -575,8 +586,16 @@ public class FeatureMapRaycaster : MonoBehaviour
             byte[] png = kvp.Value.EncodeToPNG();
             if (png == null)
                 continue;
-            File.WriteAllBytes(UniquePath(_logPath, _sessionPrefix + "-heatmap-" + SafeFileName(name) + ".png"), png);
+            File.WriteAllBytes(Path.Combine(_logPath, _sessionPrefix + "-heatmap-" + SafeFileName(name) + ".png"), png);
         }
+    }
+
+    void OnApplicationPause(bool paused)
+    {
+        // HOME button backgrounds the app on PICO - OnDestroy may never run,
+        // so persist the current heatmap state whenever the app pauses.
+        if (paused && saveHeatmapImage)
+            SaveHeatmapImages();
     }
 
     static string SafeFileName(string name)

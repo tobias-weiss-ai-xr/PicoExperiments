@@ -70,6 +70,21 @@ def analyze_transitions(path):
     for a in sorted(first, key=lambda a: first[a]):
         print(f"  {a:<15}{(first[a] - t0) / 1000:>8.3f}")
 
+    # per-object dwell + TTFF (multi-object runs: areas repeat across products)
+    by_obj = {}
+    first_obj = {}
+    for r in rows:
+        o = r["HitObject"] or "None"
+        d = by_obj.setdefault(o, [0.0, 0])
+        d[0] += float(r["DurationInSec"])
+        d[1] += 1
+        first_obj.setdefault(o, int(r["StartEpochMs"]))
+    if len(by_obj) > 1 or "DemoBox" in "".join(by_obj):
+        print("\nper-object dwell (HitObject):")
+        print(f"{'Object':<20}{'intervals':>10}{'total_s':>10}{'ttff_s':>9}")
+        for o, (tot, cnt) in sorted(by_obj.items(), key=lambda kv: -kv[1][0]):
+            print(f"{o:<20}{cnt:>10}{fmt(tot):>10}{fmt((first_obj[o] - t0) / 1000):>9}")
+
     seq = [r["Area"] for r in rows]
     pairs = Counter(zip(seq, seq[1:]))
     areas = sorted({a for p in pairs for a in p})

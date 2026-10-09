@@ -17,6 +17,8 @@ public class FeatureMapSpawner : MonoBehaviour
     private Transform _anchor;
     void Awake()
     {
+        BoxPositions.Clear(); // statics survive scene reloads in the editor
+
         shader = Shader.Find("Universal Render Pipeline/FeatureMap");
 
         // Prototype (Resources.Load works in editor and player builds)
