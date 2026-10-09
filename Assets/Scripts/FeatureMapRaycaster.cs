@@ -30,6 +30,7 @@ public class FeatureMapRaycaster : MonoBehaviour
     [Header("Attention heatmap")]
     [SerializeField] bool attentionHeatmap = false;
     [SerializeField] bool aoiDebugLog = false; // 1 Hz: ray origin/direction, nearest hit + shader, box status
+    [SerializeField] bool saveHeatmapImage = false; // write final heatmaps as PNGs next to the recording on stop
     [SerializeField] float heatmapGain = 1.0f;
 
     // writers (AoI transitions, raw trace, fixations)
@@ -43,6 +44,7 @@ public class FeatureMapRaycaster : MonoBehaviour
     // alloc + multi-million-texel repaints froze the frame on first hit).
     const int HeatmapSize = 256;
     Dictionary<int, Texture2D> _heatmapTex = new Dictionary<int, Texture2D>();
+    Dictionary<int, string> _heatNames = new Dictionary<int, string>();
     Dictionary<int, float[]> _heatCounts = new Dictionary<int, float[]>();
     Dictionary<int, Color[]> _heatPixels = new Dictionary<int, Color[]>();
     Dictionary<int, float> _heatMax = new Dictionary<int, float>();
@@ -63,6 +65,8 @@ public class FeatureMapRaycaster : MonoBehaviour
     long _nextRawSampleMs;
     long _nextHeatPaintMs;
     long _nextDebugLogMs;
+    string _logPath = "";
+    string _sessionPrefix = "";
 
     // fixation state machine
     Vector3 _prevDir;
@@ -100,6 +104,8 @@ public class FeatureMapRaycaster : MonoBehaviour
 
         if (aoiLogging || fixationLogging)
             StartAoiLog();
+        else if (saveHeatmapImage)
+            Debug.LogWarning("FeatureMapRaycaster: saveHeatmapImage needs aoiLogging (or fixationLogging) to know where to write; heatmap PNGs will not be saved.");
 
         if (useEyeTracking)
         {
@@ -131,6 +137,8 @@ public class FeatureMapRaycaster : MonoBehaviour
 
         DateTime now = DateTime.Now;
         string baseName = $"{now:yyyy-MM-dd-HH-mm-ss}-{participantId}-{gameObject.scene.name}-aoi";
+        _logPath = logPath;
+        _sessionPrefix = baseName;
 
         // Self-describing recording: pipeline knobs + feature map info for replicability
         int texW, texH;
@@ -149,6 +157,7 @@ public class FeatureMapRaycaster : MonoBehaviour
             minFixationDuration = minFixationDuration,
             useEyeTracking = useEyeTracking,
             attentionHeatmap = attentionHeatmap,
+            saveHeatmapImage = saveHeatmapImage,
             heatmapGain = heatmapGain,
             featureMapTexture = FindFeatureMapTexture(out texW, out texH),
             featureMapWidth = texW,
@@ -344,6 +353,7 @@ public class FeatureMapRaycaster : MonoBehaviour
             {
                 heatTex = new Texture2D(HeatmapSize, HeatmapSize, TextureFormat.RGBA32, false);
                 _heatmapTex[rid] = heatTex;
+                _heatNames[rid] = targetRend.name;
                 _heatCounts[rid] = new float[HeatmapSize * HeatmapSize];
                 _heatPixels[rid] = new Color[HeatmapSize * HeatmapSize]; // Color.black default
                 _heatMax[rid] = 0f;
@@ -540,15 +550,39 @@ public class FeatureMapRaycaster : MonoBehaviour
             }
         }
         _aoiWriter = _rawWriter = _fixWriter = null;
+        if (saveHeatmapImage && _heatmapTex.Count > 0)
+            SaveHeatmapImages();
         foreach (var kvp in _heatmapTex)
             Destroy(kvp.Value);
         _heatmapTex.Clear();
+        _heatNames.Clear();
         _heatCounts.Clear();
         _heatPixels.Clear();
         _heatMax.Clear();
         _heatDirty.Clear();
     }
 
+    // Write the final attention heatmaps as PNGs next to the recording files.
+    void SaveHeatmapImages()
+    {
+        if (_heatDirty.Count > 0)
+            PaintHeatmaps(); // flush bumps that have not been painted yet
+        foreach (var kvp in _heatmapTex)
+        {
+            string name = _heatNames.TryGetValue(kvp.Key, out string n) ? n : kvp.Key.ToString();
+            byte[] png = kvp.Value.EncodeToPNG();
+            if (png == null)
+                continue;
+            File.WriteAllBytes(UniquePath(_logPath, _sessionPrefix + "-heatmap-" + SafeFileName(name) + ".png"), png);
+        }
+    }
+
+    static string SafeFileName(string name)
+    {
+        foreach (char c in Path.GetInvalidFileNameChars())
+            name = name.Replace(c, '_');
+        return name;
+    }
     // Self-describing recording metadata (aoi-v3) for replicability. JsonUtility-
     // compatible: [Serializable] + public fields, no Newtonsoft.
     [Serializable]
@@ -567,6 +601,7 @@ public class FeatureMapRaycaster : MonoBehaviour
         public float minFixationDuration;
         public bool useEyeTracking;
         public bool attentionHeatmap;
+        public bool saveHeatmapImage;
         public float heatmapGain;
         public string featureMapTexture;
         public int featureMapWidth;
