@@ -80,7 +80,18 @@ Signal processing, tuned via inspector fields on the raycaster:
 
 Offline analysis (dwell/fixation summaries, transition matrix, time-to-first-fixation, scanpath
 stats, `--batch` aggregation, UV gaze heatmap):
-`python analysis/aoi_report.py Recordings/<session-prefix>`.
+`python analysis/aoi_report.py Recordings/<session-prefix>`; batch-mode aggregation across
+sessions: `python analysis/aoi_report.py --batch Recordings/`. Pull recordings from a device
+build: `python analysis/pull_device_recordings.py --list`.
+
+Two live-analysis extras, both off by default on the raycaster:
+
+- **Attention heatmap** (`attentionHeatmap`): accumulated gaze is tone-mapped (log ramp,
+  black→red→white) onto the product's `_EmissionMap` in real time — attention becomes visible
+  on the object itself during pilots. `heatmapGain` scales accumulation.
+- **Transparency handling** (always on): the AoI ray skips transparent colliders (render queue
+  ≥ 3000) and classifies the first opaque surface behind them — "looking at or through" the
+  glass resolves correctly (MDPI Appl. Sci. 12:1027).
 
 Timestamps are Unix epoch ms (alignable with the eye-tracking CSVs) plus local wall-clock strings.
 Rows are flushed per write. Design rationale: `docs/specs/2026-10-08-aoi-tracking-design.md`.

@@ -70,3 +70,27 @@ ASCII output, cmd.exe-safe.
 
 Distance-segmented colliders, session manifest extensions, CSV schema changes,
 scene/hierarchy edits, shader edits.
+
+## Campaign outcome (2026-10-08)
+
+Executed via `af` (serialized after a pi-memory shared-store race crashed
+parallel attempts; TF_MAX_PARALLEL=1). All three tasks passed their gates and
+merged: 8bf376d (AH-1), 568b67a (AH-2), 1e2fca3 (AH-3).
+
+Controller quality pass over the merged C# fixed four issues the static gates
+could not see:
+
+1. **Instant saturation** — the agent painted `val = 0 + gain` directly into
+   the texture, so every looked-at texel went white on its first hit. Replaced
+   with CPU-side count buffers + log-normalized black→red→white ramp painted
+   on the raw-sample cadence (matches the plan's original ramp).
+2. **Invisible heatmap** — `_EMISSION` was enabled but `_EmissionColor` left at
+   its default black; added `SetColor("_EmissionColor", Color.white)`.
+3. **RFloat texture** — single-channel format precluded the ramp; switched to
+   RGBA32 with a cached pixel buffer (no GetPixels alloc per paint).
+4. **Per-frame GC** — `RaycastAll` + closure `Array.Sort` on every
+   classification ray replaced with a static reused buffer +
+   `RaycastNonAlloc` + insertion sort.
+
+The dual-ray logic (opaque preferred, transparent fallback) and the adb helper
+passed review as merged.

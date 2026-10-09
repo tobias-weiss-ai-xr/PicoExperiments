@@ -35,7 +35,14 @@ public class FeatureMapRaycaster : MonoBehaviour
     StreamWriter _aoiWriter, _rawWriter, _fixWriter;
 
     // attention heatmap: per-renderer accumulation textures keyed by renderer instance ID
+    // attention heatmap: raw hit counts per renderer (CPU-side), painted to an
+    // RGBA emission texture on the raw-sample cadence with a log ramp
     Dictionary<int, Texture2D> _heatmapTex = new Dictionary<int, Texture2D>();
+    Dictionary<int, float[]> _heatCounts = new Dictionary<int, float[]>();
+    Dictionary<int, Color[]> _heatPixels = new Dictionary<int, Color[]>();
+    Dictionary<int, float> _heatMax = new Dictionary<int, float>();
+    HashSet<int> _heatDirty = new HashSet<int>();
+    static readonly RaycastHit[] _rayHits = new RaycastHit[16]; // reused, no per-frame GC
 
     // current committed area + its start
     string _currentAoi = "None";
@@ -204,8 +211,7 @@ public class FeatureMapRaycaster : MonoBehaviour
             _rawWriter.Flush();
             _nextRawSampleMs = nowMs + (long)(1000f / Mathf.Max(rawSampleRate, 0.01f));
             if (attentionHeatmap)
-                foreach (var kvp in _heatmapTex)
-                { kvp.Value.Apply(false); }
+                PaintHeatmaps();
         }
 
         if (_fixWriter != null)
@@ -227,13 +233,21 @@ public class FeatureMapRaycaster : MonoBehaviour
         color = Color.clear;
         hit = default;
         
-        // Use RaycastAll to get all hits along the ray, sorted by distance
-        RaycastHit[] hits = Physics.RaycastAll(origin, direction, 20f);
-        if (hits == null || hits.Length == 0)
+        // All hits along the ray, nearest first. Static buffer: no per-frame GC.
+        int n = Physics.RaycastNonAlloc(origin, direction, _rayHits, 20f);
+        if (n == 0)
             return "None";
-        
-        // Sort by distance to ensure we process hits in order from closest to farthest
-        System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+        for (int i = 1; i < n; i++) // insertion sort, n is tiny
+        {
+            RaycastHit h = _rayHits[i];
+            int j = i - 1;
+            while (j >= 0 && _rayHits[j].distance > h.distance)
+            {
+                _rayHits[j + 1] = _rayHits[j];
+                j--;
+            }
+            _rayHits[j + 1] = h;
+        }
         
         // Separate opaque and transparent hits
         Renderer firstOpaqueRend = null;
@@ -241,8 +255,9 @@ public class FeatureMapRaycaster : MonoBehaviour
         Renderer firstTransparentRend = null;
         RaycastHit firstTransparentHit = default;
         
-        foreach (var rayHit in hits)
+        for (int i = 0; i < n; i++)
         {
+            RaycastHit rayHit = _rayHits[i];
             Renderer rend = rayHit.transform.GetComponent<Renderer>();
             if (rend == null || rend.sharedMaterial == null)
                 continue;
@@ -294,18 +309,53 @@ public class FeatureMapRaycaster : MonoBehaviour
             int rid = targetRend.GetInstanceID();
             if (!_heatmapTex.TryGetValue(rid, out Texture2D heatTex))
             {
-                heatTex = new Texture2D(tex.width, tex.height, TextureFormat.RFloat, false);
+                heatTex = new Texture2D(tex.width, tex.height, TextureFormat.RGBA32, false);
                 _heatmapTex[rid] = heatTex;
+                _heatCounts[rid] = new float[tex.width * tex.height];
+                _heatPixels[rid] = new Color[tex.width * tex.height]; // Color.black default
+                _heatMax[rid] = 0f;
+                heatTex.SetPixels(_heatPixels[rid]);
+                heatTex.Apply(false);
                 targetRend.material.SetTexture("_EmissionMap", heatTex);
+                targetRend.material.SetColor("_EmissionColor", Color.white); // default is black = invisible
                 targetRend.material.EnableKeyword("_EMISSION");
             }
             int px = Mathf.Clamp((int)texel.x, 0, heatTex.width - 1);
             int py = Mathf.Clamp((int)texel.y, 0, heatTex.height - 1);
-            float val = heatTex.GetPixel(px, py).r + heatmapGain;
-            heatTex.SetPixel(px, py, new Color(val, val, val, val));
+            float[] counts = _heatCounts[rid];
+            int idx = py * heatTex.width + px;
+            counts[idx] += heatmapGain;
+            if (counts[idx] > _heatMax[rid])
+                _heatMax[rid] = counts[idx];
+            _heatDirty.Add(rid);
         }
         
         return ClassifyAoi(color);
+    }
+
+    // Tone-map raw counts to a black->red->white ramp (log-normalized) and
+    // upload only textures that received hits since the last paint.
+    void PaintHeatmaps()
+    {
+        foreach (int rid in _heatDirty)
+        {
+            Texture2D heatTex = _heatmapTex[rid];
+            float[] counts = _heatCounts[rid];
+            Color[] px = _heatPixels[rid];
+            float norm = Mathf.Log(1f + _heatMax[rid]);
+            if (norm <= 0f)
+                continue;
+            for (int i = 0; i < px.Length; i++)
+            {
+                float t = Mathf.Log(1f + counts[i]) / norm;
+                px[i] = t < 0.5f
+                    ? Color.Lerp(Color.black, Color.red, t * 2f)
+                    : Color.Lerp(Color.red, Color.white, (t - 0.5f) * 2f);
+            }
+            heatTex.SetPixels(px);
+            heatTex.Apply(false);
+        }
+        _heatDirty.Clear();
     }
 
     // Debounced area tracking: a new area only commits after holding minDwell
@@ -459,6 +509,10 @@ public class FeatureMapRaycaster : MonoBehaviour
         foreach (var kvp in _heatmapTex)
             Destroy(kvp.Value);
         _heatmapTex.Clear();
+        _heatCounts.Clear();
+        _heatPixels.Clear();
+        _heatMax.Clear();
+        _heatDirty.Clear();
     }
 
     // Self-describing recording metadata (aoi-v3) for replicability. JsonUtility-
