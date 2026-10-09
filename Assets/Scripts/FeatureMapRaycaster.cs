@@ -226,33 +226,78 @@ public class FeatureMapRaycaster : MonoBehaviour
     {
         color = Color.clear;
         hit = default;
-        if (!Physics.Raycast(origin, direction, out RaycastHit rayHit, 20f))
+        
+        // Use RaycastAll to get all hits along the ray, sorted by distance
+        RaycastHit[] hits = Physics.RaycastAll(origin, direction, 20f);
+        if (hits == null || hits.Length == 0)
             return "None";
-        hit.hitObject = rayHit.transform.name;
-        hit.point = rayHit.point;
-        hit.uv = rayHit.textureCoord;
-
-        Renderer rend = rayHit.transform.GetComponent<Renderer>();
-        Collider collider = rayHit.collider;
-        if (rend == null || rend.sharedMaterial == null ||
-            rend.sharedMaterial.shader.name != "Universal Render Pipeline/FeatureMap" || collider == null)
+        
+        // Sort by distance to ensure we process hits in order from closest to farthest
+        System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+        
+        // Separate opaque and transparent hits
+        Renderer firstOpaqueRend = null;
+        RaycastHit firstOpaqueHit = default;
+        Renderer firstTransparentRend = null;
+        RaycastHit firstTransparentHit = default;
+        
+        foreach (var rayHit in hits)
+        {
+            Renderer rend = rayHit.transform.GetComponent<Renderer>();
+            if (rend == null || rend.sharedMaterial == null)
+                continue;
+            
+            // Check if material is transparent (render queue >= 3000 or transparent rendering mode)
+            bool isTransparent = rend.sharedMaterial.renderQueue >= 3000 ||
+                                  rend.sharedMaterial.GetTag("RenderType", false) == "Transparent";
+            
+            if (!isTransparent && firstOpaqueRend == null)
+            {
+                firstOpaqueRend = rend;
+                firstOpaqueHit = rayHit;
+            }
+            else if (isTransparent && firstTransparentRend == null)
+            {
+                firstTransparentRend = rend;
+                firstTransparentHit = rayHit;
+            }
+            
+            // Early out: we have both, no need to check further
+            if (firstOpaqueRend != null && firstTransparentRend != null)
+                break;
+        }
+        
+        // Prefer opaque hit, fall back to transparent
+        Renderer targetRend = firstOpaqueRend ?? firstTransparentRend;
+        RaycastHit targetHit = firstOpaqueRend != null ? firstOpaqueHit : firstTransparentHit;
+        
+        if (targetRend == null || targetRend.sharedMaterial == null ||
+            targetRend.sharedMaterial.shader.name != "Universal Render Pipeline/FeatureMap")
             return "None";
+        
+        Collider collider = targetHit.collider;
+        if (collider == null)
+            return "None";
+        
+        hit.hitObject = targetHit.transform.name;
+        hit.point = targetHit.point;
+        hit.uv = targetHit.textureCoord;
 
-        Texture2D tex = rend.material.GetTexture("_FeatureMap") as Texture2D;
-        Vector2 texel = rayHit.textureCoord;
+        Texture2D tex = targetRend.material.GetTexture("_FeatureMap") as Texture2D;
+        Vector2 texel = targetHit.textureCoord;
         texel.x *= tex.width;
         texel.y *= tex.height;
         color = tex.GetPixel((int)texel.x, (int)texel.y);
         
         if (attentionHeatmap && color != Color.clear)
         {
-            int rid = rend.GetInstanceID();
+            int rid = targetRend.GetInstanceID();
             if (!_heatmapTex.TryGetValue(rid, out Texture2D heatTex))
             {
                 heatTex = new Texture2D(tex.width, tex.height, TextureFormat.RFloat, false);
                 _heatmapTex[rid] = heatTex;
-                rend.material.SetTexture("_EmissionMap", heatTex);
-                rend.material.EnableKeyword("_EMISSION");
+                targetRend.material.SetTexture("_EmissionMap", heatTex);
+                targetRend.material.EnableKeyword("_EMISSION");
             }
             int px = Mathf.Clamp((int)texel.x, 0, heatTex.width - 1);
             int py = Mathf.Clamp((int)texel.y, 0, heatTex.height - 1);
