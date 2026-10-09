@@ -2,6 +2,10 @@ using UnityEngine;
 
 public class FeatureMapSpawner : MonoBehaviour
 {
+    // Diagnostics for "why did a session record zero hits": spawner outcome + box location
+    public static bool Spawned;
+    public static Vector3 BoxPosition;
+
     private GameObject instance;
     private Shader shader;
     void Awake()
@@ -35,5 +39,7 @@ public class FeatureMapSpawner : MonoBehaviour
             return;
         }
         rend.material.SetTexture("_FeatureMap", tex);
+        Spawned = true;
+        BoxPosition = instance.transform.position;
     }
 }

@@ -29,6 +29,7 @@ public class FeatureMapRaycaster : MonoBehaviour
     [SerializeField] bool useEyeTracking = false;
     [Header("Attention heatmap")]
     [SerializeField] bool attentionHeatmap = false;
+    [SerializeField] bool aoiDebugLog = false; // 1 Hz: ray origin/direction, nearest hit + shader, box status
     [SerializeField] float heatmapGain = 1.0f;
 
     // writers (AoI transitions, raw trace, fixations)
@@ -61,6 +62,7 @@ public class FeatureMapRaycaster : MonoBehaviour
     // raw trace sampling
     long _nextRawSampleMs;
     long _nextHeatPaintMs;
+    long _nextDebugLogMs;
 
     // fixation state machine
     Vector3 _prevDir;
@@ -205,6 +207,21 @@ public class FeatureMapRaycaster : MonoBehaviour
             fwd = _gazeDirWorld;
 
         string area = ClassifyRay(cameraTransform.position, fwd, out RayHit hit, out Color color);
+
+        if (aoiDebugLog && nowMs >= _nextDebugLogMs)
+        {
+            _nextDebugLogMs = nowMs + 1000;
+            string nearest = "none";
+            if (Physics.Raycast(cameraTransform.position, fwd, out RaycastHit dbg, 20f) && dbg.collider != null)
+            {
+                Renderer r = dbg.transform.GetComponent<Renderer>();
+                nearest = $"{dbg.transform.name} [{(r && r.sharedMaterial ? r.sharedMaterial.shader.name : "no-renderer")}]";
+            }
+            string box = FeatureMapSpawner.Spawned
+                ? $"boxAt={FeatureMapSpawner.BoxPosition:F1} dist={(FeatureMapSpawner.BoxPosition - cameraTransform.position).magnitude:F1}m"
+                : "box=NOT-SPAWNED";
+            Debug.Log($"[AoI] fwd={fwd:F2} nearest={nearest} {box}");
+        }
         _gazeFwd = fwd;
         if (color != Color.clear)
             OnFeatureMapColor?.Invoke(color);
@@ -317,7 +334,8 @@ public class FeatureMapRaycaster : MonoBehaviour
         Vector2 texel = targetHit.textureCoord;
         texel.x *= tex.width;
         texel.y *= tex.height;
-        color = tex.GetPixel((int)texel.x, (int)texel.y);
+        color = tex.GetPixel(Mathf.Clamp((int)texel.x, 0, tex.width - 1),
+                             Mathf.Clamp((int)texel.y, 0, tex.height - 1));
         
         if (attentionHeatmap && countHeat && color != Color.clear)
         {
