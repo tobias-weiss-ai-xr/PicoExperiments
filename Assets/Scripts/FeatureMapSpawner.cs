@@ -13,6 +13,7 @@ public class FeatureMapSpawner : MonoBehaviour
 
     private Shader shader;
     private Renderer _firstProductRend;
+    private Renderer _platRend;
     private Transform _anchor;
     void Awake()
     {
@@ -32,31 +33,38 @@ public class FeatureMapSpawner : MonoBehaviour
             Debug.LogError("Feature map 'FeatureMapDemo/FeatureMap' not found in Resources.");
             return;
         }
-        Transform anchor = GameObject.Find("Spawn")?.transform;
-        if (anchor == null)
+        _anchor = GameObject.Find("Spawn")?.transform;
+        if (_anchor == null)
         {
             Debug.LogError("FeatureMapSpawner: no 'Spawn' object in scene.");
             return;
         }
-        _anchor = anchor;
+        Transform plat = platform != null ? platform : GameObject.Find("Cube")?.transform;
+        _platRend = plat ? plat.GetComponent<Renderer>() : null;
 
         for (int i = 0; i < count; i++)
         {
             // Row along the anchor's right vector, centered on the anchor
-            Vector3 target = anchor.position + anchor.right * ((i - (count - 1) * 0.5f) * spacing);
+            Vector3 target = _anchor.position + _anchor.right * ((i - (count - 1) * 0.5f) * spacing);
 
             GameObject instance = Instantiate(prototype);
             instance.name = $"DemoBox_{i + 1}";
             instance.AddComponent<MeshCollider>();
             instance.transform.localScale *= boxScale;
-            GameObject handle = new GameObject();
-            handle.transform.SetParent(instance.transform);
-            handle.transform.localPosition = new Vector3(-0.0022f, -0.0022f, -0.0022f);
-            instance.transform.position = target + (instance.transform.position - handle.transform.position);
 
             MeshRenderer rend = instance.GetComponent<MeshRenderer>();
             rend.material.shader = shader;
             rend.material.SetTexture("_FeatureMap", tex);
+
+            // Place by measured bounds: product bottom-center onto the spawn
+            // target (y = platform surface if available). Independent of the
+            // FBX root transform and of the boxScale — no calibration magic.
+            Bounds wb = WorldBounds(rend);
+            float surfaceY = _platRend ? _platRend.bounds.max.y : target.y;
+            instance.transform.position += new Vector3(
+                target.x - wb.center.x,
+                surfaceY - wb.min.y,
+                target.z - wb.center.z);
 
             // Pre-warm the emission shader variant at spawn. Gaze-hit time is
             // too late: the first _EMISSION compile stalls a frame, and on the
@@ -78,31 +86,53 @@ public class FeatureMapSpawner : MonoBehaviour
         FitPlatform();
     }
 
+    // Exact world AABB from localBounds (renderer.bounds can lag a frame for
+    // freshly instantiated objects).
+    static Bounds WorldBounds(Renderer r)
+    {
+        Bounds l = r.localBounds;
+        Vector3 mn = new Vector3(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
+        Vector3 mx = new Vector3(float.NegativeInfinity, float.NegativeInfinity, float.NegativeInfinity);
+        for (int x = 0; x <= 1; x++)
+        for (int y = 0; y <= 1; y++)
+        for (int z = 0; z <= 1; z++)
+        {
+            Vector3 c = r.transform.localToWorldMatrix.MultiplyPoint3x4(new Vector3(
+                x == 0 ? l.min.x : l.max.x,
+                y == 0 ? l.min.y : l.max.y,
+                z == 0 ? l.min.z : l.max.z));
+            mn = Vector3.Min(mn, c);
+            mx = Vector3.Max(mx, c);
+        }
+        Bounds b = new Bounds(mn, Vector3.zero);
+        b.Encapsulate(mx);
+        return b;
+    }
+
     // Widen the platform under the row so all products fit on it. Assumes the
     // row axis (anchor right) and the platform are world-axis aligned (true
     // for the ObjectTracking scene's unrotated anchor + Cube).
     void FitPlatform()
     {
-        Transform plat = platform != null ? platform : GameObject.Find("Cube")?.transform;
-        Renderer platRend = plat ? plat.GetComponent<Renderer>() : null;
-        MeshFilter mf = _firstProductRend ? _firstProductRend.GetComponent<MeshFilter>() : null;
-        if (platRend == null || mf == null || mf.sharedMesh == null)
+        if (_platRend == null || _firstProductRend == null)
             return;
-        // Mesh bounds x lossyScale: exact at spawn time (renderer bounds can
-        // lag a frame, which left the last product hanging off the edge).
+        MeshFilter mf = _firstProductRend.GetComponent<MeshFilter>();
+        if (mf == null || mf.sharedMesh == null)
+            return;
+        // Mesh bounds x lossyScale: exact at spawn time.
         float productWidth = mf.sharedMesh.bounds.size.x * _firstProductRend.transform.lossyScale.x;
         float rowWidth = 1.1f * ((BoxPositions.Count - 1) * spacing + productWidth);
-        float currentWidth = platRend.bounds.size.x;
+        float currentWidth = _platRend.bounds.size.x;
         if (currentWidth > 0.001f)
         {
-            Vector3 ls = plat.localScale;
+            Vector3 ls = _platRend.transform.localScale;
             ls.x *= rowWidth / currentWidth;
-            plat.localScale = ls;
+            _platRend.transform.localScale = ls;
         }
         // Center the platform under the row (row axis = anchor right; anchor
         // and platform are world-axis aligned in this scene)
-        Vector3 pos = plat.position;
+        Vector3 pos = _platRend.transform.position;
         pos.x = _anchor.position.x;
-        plat.position = pos;
+        _platRend.transform.position = pos;
     }
 }
