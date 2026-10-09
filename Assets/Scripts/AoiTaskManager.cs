@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using UnityEngine;
+using TMPro;
 
 /// <summary>
 /// Config-driven visual-search task on top of the AoI pipeline (idea ported
@@ -31,6 +32,8 @@ public class AoiTaskManager : MonoBehaviour
 
     [SerializeField] TextAsset taskFile;  // JSON: {"trials":[{"target":"DemoBox_2","maxSearchSec":30}]}
     [SerializeField] bool autostart = true;
+    [SerializeField] TMP_Text trialDisplay;   // optional VR HUD: trial x/y + current target
+    [SerializeField] float interTrialDelay = 0f; // s of gap after a trial (RT validity: next trial starts with fresh gaze)
     [Header("Experiment conditions")]
     [SerializeField] bool randomizeTrials = false; // shuffle trial order
     [SerializeField] int randomSeed = 0;           // 0 = seed from device clock; seed is logged per row
@@ -44,6 +47,7 @@ public class AoiTaskManager : MonoBehaviour
     List<Task> _trials;
     StreamWriter _writer;
     long _trialStartMs;
+    long _nextTrialAtMs;
     int _index;
     int _seedUsed;
     bool _running;
@@ -102,11 +106,19 @@ public class AoiTaskManager : MonoBehaviour
     {
         _trialStartMs = NowMs();
         _running = true;
+        if (trialDisplay != null)
+            trialDisplay.text = $"Trial {_index + 1}/{_trials.Count}\nFind: {_trials[_index].target}";
         Debug.Log($"[AoI-Task] trial {_index + 1}/{_trials.Count}: find '{_trials[_index].target}'");
     }
 
     void Update()
     {
+        if (_nextTrialAtMs != 0 && NowMs() >= _nextTrialAtMs)
+        {
+            _nextTrialAtMs = 0;
+            StartTrial();
+            return;
+        }
         if (!_running)
             return;
         Task t = _trials[_index];
@@ -131,11 +143,23 @@ public class AoiTaskManager : MonoBehaviour
         {
             if (shuffleBetweenTrials && spawner != null)
                 spawner.ShuffleRow(_seedUsed + _index); // deterministic per trial index
-            StartTrial();
+            if (interTrialDelay > 0f)
+            {
+                _running = false;
+                _nextTrialAtMs = NowMs() + (long)(interTrialDelay * 1000f);
+                if (trialDisplay != null)
+                    trialDisplay.text = $"Next trial in {interTrialDelay:F0}s";
+            }
+            else
+            {
+                StartTrial();
+            }
         }
         else
         {
             Debug.Log("[AoI-Task] all trials complete");
+            if (trialDisplay != null)
+                trialDisplay.text = "Task complete";
             _running = false;
         }
     }

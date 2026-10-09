@@ -140,6 +140,26 @@ def analyze_batch(directory):
         print(f"  {name:<45}{fmt(total, 1):>8}s  dom {dom_area}({fmt(dom_share, 1)}%)  "
               f"fix {fix_count if fix_count is not None else 0}  {fmt(rate, 1)}/min")
         sessions.append(st)
+    # pooled task results across sessions (the study-level output)
+    task_pool = {}
+    for p in paths:
+        prefix = os.path.splitext(p)[0]
+        tpath = prefix + "-tasks.csv"
+        if not os.path.exists(tpath):
+            continue
+        for r in read_csv(tpath):
+            targ = r["Target"] or "?"
+            d = task_pool.setdefault(targ, [0, 0, []])
+            d[0] += 1
+            if r["Found"].strip().lower() == "true":
+                d[1] += 1
+                d[2].append(float(r["SearchSec"]))
+    if task_pool:
+        print("\npooled task results (all sessions):")
+        print(f"{'Target':<16}{'n':>5}{'found':>7}{'rate%':>7}{'mean_rt_s':>11}")
+        for targ, (n, found, fsecs) in sorted(task_pool.items(), key=lambda kv: -kv[1][0]):
+            mean = fmt(sum(fsecs) / len(fsecs)) if fsecs else "-"
+            print(f"{targ:<16}{n:>5}{found:>7}{fmt(100.0 * found / n, 1):>7}{mean:>11}")
     if not sessions:
         return
     totals = [t for _, t, _ in sessions]

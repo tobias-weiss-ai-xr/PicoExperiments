@@ -146,6 +146,12 @@ Experiment conditions on the task manager:
 - **`heatmapPerTrial`** — saves a heatmap snapshot per trial
   (`…-heatmap-<object>-trialN.png`), showing how the search evolved.
 - **`foundClip` / `timeoutClip`** — optional audio feedback at trial end.
+- **`trialDisplay`** — optional TMP text showing trial progress + current
+  target in VR (or "Next trial in…"/"Task complete"; the tasks run fine
+  headless without it).
+- **`interTrialDelay`** — optional pause (s) after each trial before the next
+  one starts, so the search-time clock starts with a fresh gaze instead of
+  riding over from the previous target.
 
 The raycaster also prints a per-area dwell summary to the console when a
 session ends (handy on-device, where the offline report isn't available).
