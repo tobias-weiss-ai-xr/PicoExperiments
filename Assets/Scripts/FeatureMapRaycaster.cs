@@ -209,7 +209,7 @@ public class FeatureMapRaycaster : MonoBehaviour
 
         if (_rawWriter != null && nowMs >= _nextRawSampleMs)
         {
-            string p = hit.point;
+            Vector3 p = hit.point;
             _rawWriter.WriteLine($"{nowMs};{LogTime()};{_currentAoi};{hit.hitObject};" +
                 $"{p.x.ToString("F2", CultureInfo.InvariantCulture)};{p.y.ToString("F2", CultureInfo.InvariantCulture)};{p.z.ToString("F2", CultureInfo.InvariantCulture)};" +
                 $"{hit.uv.x.ToString("F4", CultureInfo.InvariantCulture)};{hit.uv.y.ToString("F4", CultureInfo.InvariantCulture)}");
