@@ -94,3 +94,33 @@ could not see:
 
 The dual-ray logic (opaque preferred, transparent fallback) and the adb helper
 passed review as merged.
+
+## Bug hunt (2026-10-08, post-campaign)
+
+Full-surface review after the campaign; fixed in one commit:
+
+1. **CRITICAL - device logging path**: `StartAoiLog` used `Application.dataPath`
+   on device (the APK dir, not writable; the exception also aborted `Start`
+   before the eye-tracking subscription). Now `Application.persistentDataPath`,
+   matching `EyeTrackingLogging`'s existing convention. Device recordings under
+   `Android/data/<pkg>/files/Recordings/` as the README always claimed.
+2. **Heatmap never painted without raw logging**: repaint was nested inside the
+   raw-writer branch; now an independent 10 Hz `_nextHeatPaintMs` cadence.
+3. **Cone probes polluted the heatmap**: the 17 verification rays bumped their
+   texels too; `ClassifyRay` gained `countHeat` (default true, probes false).
+4. **NRE guard**: FeatureMap-shader renderer with no `_FeatureMap` texture
+   crashed `Update` every frame; now classified as "None".
+5. **Manifest provenance gap**: new knobs missing; pipeline bumped to `aoi-v4`,
+   manifest now records `attentionHeatmap`/`heatmapGain`.
+6. **AH-3 helper was non-functional** (shallow gate pass): listed `/sdcard/`
+   root via `run-as`, `-s ""` broke pulls. Rewritten: correct
+   `Android/data/<pkg>/files/Recordings` target, `dev_args` keeps `adb -s`
+   before the command, dir filtering via `ls -1 -p`, real self-test.
+7. **Report robustness**: empty transitions/fixations CSVs and zero-span raw
+   traces no longer crash the analysis.
+
+Known, accepted (documented): RaycastNonAlloc truncates beyond 16 hits (buffer
+grows never; scene has far fewer); multi-material renderers judge material[0]
+only; fixation window keeps a >20 ms stale sample after long hitches (self-heals
+next frame); heatmap normalization is session-max (early texels dim as max
+grows - intended adaptive behavior).

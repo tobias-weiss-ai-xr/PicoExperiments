@@ -56,6 +56,7 @@ public class FeatureMapRaycaster : MonoBehaviour
 
     // raw trace sampling
     long _nextRawSampleMs;
+    long _nextHeatPaintMs;
 
     // fixation state machine
     Vector3 _prevDir;
@@ -115,7 +116,9 @@ public class FeatureMapRaycaster : MonoBehaviour
 #if UNITY_EDITOR
         string logPath = Application.dataPath + "/../Recordings/";
 #else
-        string logPath = Application.dataPath + "/Recordings/";
+        // persistentDataPath is writable on device and matches EyeTrackingLogging's
+        // convention (dataPath on Android is the APK dir - not writable)
+        string logPath = Application.persistentDataPath + "/Recordings/";
 #endif
         if (!Directory.Exists(logPath))
             Directory.CreateDirectory(logPath);
@@ -127,7 +130,7 @@ public class FeatureMapRaycaster : MonoBehaviour
         int texW, texH;
         AoiSessionManifest manifest = new AoiSessionManifest
         {
-            pipeline = "aoi-v3",
+            pipeline = "aoi-v4",
             participantId = participantId,
             scene = gameObject.scene.name,
             timestampUtcEpochMs = NowMs(),
@@ -139,6 +142,8 @@ public class FeatureMapRaycaster : MonoBehaviour
             saccadeVelocity = saccadeVelocity,
             minFixationDuration = minFixationDuration,
             useEyeTracking = useEyeTracking,
+            attentionHeatmap = attentionHeatmap,
+            heatmapGain = heatmapGain,
             featureMapTexture = FindFeatureMapTexture(out texW, out texH),
             featureMapWidth = texW,
             featureMapHeight = texH,
@@ -210,8 +215,12 @@ public class FeatureMapRaycaster : MonoBehaviour
                 $"{hit.uv.x.ToString("F4", CultureInfo.InvariantCulture)};{hit.uv.y.ToString("F4", CultureInfo.InvariantCulture)}");
             _rawWriter.Flush();
             _nextRawSampleMs = nowMs + (long)(1000f / Mathf.Max(rawSampleRate, 0.01f));
-            if (attentionHeatmap)
-                PaintHeatmaps();
+        }
+
+        if (attentionHeatmap && _heatDirty.Count > 0 && nowMs >= _nextHeatPaintMs)
+        {
+            PaintHeatmaps();
+            _nextHeatPaintMs = nowMs + 100; // 10 Hz repaint cap, independent of the raw writer
         }
 
         if (_fixWriter != null)
@@ -228,7 +237,7 @@ public class FeatureMapRaycaster : MonoBehaviour
         public Vector2 uv;
     }
 
-    string ClassifyRay(Vector3 origin, Vector3 direction, out RayHit hit, out Color color)
+    string ClassifyRay(Vector3 origin, Vector3 direction, out RayHit hit, out Color color, bool countHeat = true)
     {
         color = Color.clear;
         hit = default;
@@ -299,12 +308,14 @@ public class FeatureMapRaycaster : MonoBehaviour
         hit.uv = targetHit.textureCoord;
 
         Texture2D tex = targetRend.material.GetTexture("_FeatureMap") as Texture2D;
+        if (tex == null)
+            return "None"; // FeatureMap shader without an assigned texture
         Vector2 texel = targetHit.textureCoord;
         texel.x *= tex.width;
         texel.y *= tex.height;
         color = tex.GetPixel((int)texel.x, (int)texel.y);
         
-        if (attentionHeatmap && color != Color.clear)
+        if (attentionHeatmap && countHeat && color != Color.clear)
         {
             int rid = targetRend.GetInstanceID();
             if (!_heatmapTex.TryGetValue(rid, out Texture2D heatTex))
@@ -399,7 +410,7 @@ public class FeatureMapRaycaster : MonoBehaviour
                            Mathf.Tan(angle * Mathf.Deg2Rad)).normalized;
             float w = Mathf.Exp(-(angle * angle) / (2f * sigma * sigma));
             totalWeight += w;
-            if (ClassifyRay(origin, dir, out _, out _) == area)
+            if (ClassifyRay(origin, dir, out _, out _, countHeat: false) == area)
                 agreeWeight += w;
         }
 
@@ -532,6 +543,8 @@ public class FeatureMapRaycaster : MonoBehaviour
         public float saccadeVelocity;
         public float minFixationDuration;
         public bool useEyeTracking;
+        public bool attentionHeatmap;
+        public float heatmapGain;
         public string featureMapTexture;
         public int featureMapWidth;
         public int featureMapHeight;

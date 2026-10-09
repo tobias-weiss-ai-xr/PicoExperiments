@@ -48,6 +48,9 @@ def entropy_bits(counter):
 def analyze_transitions(path):
     rows = read_csv(path)
     print(f"== transitions ({os.path.basename(path)}) ==")
+    if not rows:
+        print("(empty file)")
+        return
     by_area = {}
     for r in rows:
         d = by_area.setdefault(r["Area"], [])
@@ -145,6 +148,10 @@ def analyze_batch(directory):
 
 def analyze_fixations(path):
     rows = read_csv(path)
+    print(f"\n== fixations ({os.path.basename(path)}) ==")
+    if not rows:
+        print("count: 0  (empty file)")
+        return
     durs = [float(r["DurationInSec"]) for r in rows]
     per_area = Counter(r["Area"] for r in rows)
     print(f"\n== fixations ({os.path.basename(path)}) ==")
@@ -160,7 +167,10 @@ def analyze_raw(path, prefix):
     n = len(rows)
     if n >= 2:
         span_s = (int(rows[-1]["EpochMs"]) - int(rows[0]["EpochMs"])) / 1000
-        print(f"samples: {n}  span: {fmt(span_s, 1)} s  effective rate: {fmt(n / span_s, 2)} Hz")
+        if span_s > 0:
+            print(f"samples: {n}  span: {fmt(span_s, 1)} s  effective rate: {fmt(n / span_s, 2)} Hz")
+        else:
+            print(f"samples: {n}")
     shares = Counter(r["Area"] for r in rows)
     for a, c in shares.most_common():
         print(f"  {a:<15}{c:>6}  {fmt(100 * c / n, 1)}%")

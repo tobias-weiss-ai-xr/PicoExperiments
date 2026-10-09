@@ -109,7 +109,7 @@ Rows are flushed per write. Design rationale: `docs/specs/2026-10-08-aoi-trackin
 - Editor: `Recordings/` in the project root, plus the Unity Console
   (`%LOCALAPPDATA%\Unity\Editor\Editor.log`)
 - On device: `adb logcat -s Unity` for logs; research CSVs under
-  `Android/data/<package>/files/Recordings/` (pull with `adb pull`)
+  `Android/data/<package>/files/Recordings/` (pull with `analysis/pull_device_recordings.py`)
 
 ## Face Tracking
 
