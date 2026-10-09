@@ -70,6 +70,15 @@ public class FeatureMapRaycaster : MonoBehaviour
     string _logPath = "";
     string _sessionPrefix = "";
 
+    // Read-only session info for companion components (e.g. AoiTaskManager):
+    // valid after Start when aoiLogging (or fixationLogging) is on, else empty.
+    public string SessionLogPath => _logPath;
+    public string SessionPrefix => _sessionPrefix;
+
+    /// Committed AOI label of the current frame ("None" when nothing), set in
+    /// Update; polled by experiment logic like the task manager.
+    public string CurrentArea { get; private set; } = "None";
+
     // fixation state machine
     Vector3 _prevDir;
     long _prevDirMs;
@@ -218,6 +227,7 @@ public class FeatureMapRaycaster : MonoBehaviour
             fwd = _gazeDirWorld;
 
         string area = ClassifyRay(cameraTransform.position, fwd, out RayHit hit, out Color color);
+        CurrentArea = area;
 
         if (aoiDebugLog && nowMs >= _nextDebugLogMs)
         {

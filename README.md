@@ -122,7 +122,17 @@ raycaster per participant; filenames are unique per run.
 | `…-aoi-raw.csv` | Committed area sampled at 10 Hz with world hit point and surface UV (`U;V`) for post-hoc surface mapping |
 | `…-aoi-fixations.csv` | Fixations: `StartEpochMs;EndEpochMs;DurationInSec;Area` |
 | `…-aoi-session.json` | Manifest with pipeline id, participant, scene, timestamps, every knob value, feature-map info |
+| `…-aoi-tasks.csv` | One row per task trial (`AoiTaskManager`): `StartEpochMs;LogTime;Target;Found;SearchSec` |
 | `…-aoi-heatmap-<object>.png` | Final attention heatmap(s) when `saveHeatmapImage` is enabled |
+
+### Visual-search task (AoiTaskManager)
+
+`AoiTaskManager` (same GameObject as the raycaster) runs config-driven search
+trials: add a JSON asset `{"trials":[{"target":"DemoBox_2","maxSearchSec":30}]}`,
+assign it, done. Each trial completes when the committed AOI equals the target
+— works with feature-map areas and with `wholeObjectAoi` (target = object
+name) — or on timeout. Found time per trial lands in `…-tasks.csv`.
+`autostart` can be turned off and `Begin()` called from custom flow control.
 
 ### Live visualization & debugging (all off by default)
 
