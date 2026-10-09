@@ -1,0 +1,6 @@
+{"trials":[
+ {"target":"DemoBox_5","maxSearchSec":20},{"target":"DemoBox_2","maxSearchSec":20},
+ {"target":"DemoBox_4","maxSearchSec":20},{"target":"DemoBox_1","maxSearchSec":20},
+ {"target":"DemoBox_3","maxSearchSec":20},{"target":"DemoBox_2","maxSearchSec":20},
+ {"target":"DemoBox_5","maxSearchSec":20},{"target":"DemoBox_1","maxSearchSec":20},
+ {"target":"DemoBox_3","maxSearchSec":20},{"target":"DemoBox_4","maxSearchSec":20}]}

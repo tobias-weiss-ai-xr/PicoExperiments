@@ -182,6 +182,13 @@ warning below 40 fps). Stdlib only, no dependencies.
 `analysis/ci_check_aoi_v4.py` is a static regression gate for the pipeline
 internals (`--self-test` checks run without Unity).
 
+### Pilot study protocol
+
+`docs/pilot-design.md` is a ready-to-run pilot (position search + identity
+search blocks, 8 participants): locked inspector settings, both task files
+under `Assets/Experiments/`, validity gates, exclusion rules, analysis plan
+and pre-registration-lite hypotheses all map 1:1 onto the existing outputs.
+
 ## Data locations & alignment
 
 - Editor: `Recordings/` in the project root; console log in
