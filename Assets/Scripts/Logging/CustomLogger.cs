@@ -44,7 +44,12 @@ public class CustomLogger : MonoBehaviour
 
         logging = true;
 
-        string logPath = useCustomLogPath ? customLogPath : Application.dataPath + "/Logs/";
+#if UNITY_EDITOR
+        string logPath = useCustomLogPath ? customLogPath : Application.dataPath + "/../Logs/";
+#else
+        // persistentDataPath is writable on device (dataPath is the APK dir)
+        string logPath = useCustomLogPath ? customLogPath : Application.persistentDataPath + "/Logs/";
+#endif
         Directory.CreateDirectory(logPath);
 
         DateTime now = DateTime.Now;

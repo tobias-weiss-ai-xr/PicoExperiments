@@ -27,7 +27,8 @@ public class DebugLogger : MonoBehaviour
         // Don't save in Assets folder when running in Unity player
         string logPath = Application.dataPath + "/../Recordings/";
 #else
-        string logPath = Application.dataPath + "/Recordings/";
+        // persistentDataPath is writable on device (dataPath is the APK dir)
+        string logPath = Application.persistentDataPath + "/Recordings/";
 #endif
         if (!Directory.Exists(logPath))
             Directory.CreateDirectory(logPath);
