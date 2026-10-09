@@ -31,6 +31,7 @@ public class FeatureMapRaycaster : MonoBehaviour
     [SerializeField] bool attentionHeatmap = false;
     [SerializeField] bool aoiDebugLog = false; // 1 Hz: ray origin/direction, nearest hit + shader, box status
     [SerializeField] bool saveHeatmapImage = false; // write final heatmaps as PNGs next to the recording on stop
+    [SerializeField] bool wholeObjectAoi = false; // example mode: each object is one AOI (area = object name), no feature map needed
     [SerializeField] float heatmapGain = 1.0f;
 
     // writers (AoI transitions, raw trace, fixations)
@@ -335,12 +336,25 @@ public class FeatureMapRaycaster : MonoBehaviour
         Renderer targetRend = firstOpaqueRend ?? firstTransparentRend;
         RaycastHit targetHit = firstOpaqueRend != null ? firstOpaqueHit : firstTransparentHit;
         
-        if (targetRend == null || targetRend.sharedMaterial == null ||
-            targetRend.sharedMaterial.shader.name != "Universal Render Pipeline/FeatureMap")
+        if (targetRend == null || targetRend.sharedMaterial == null)
             return "None";
         
         Collider collider = targetHit.collider;
         if (collider == null)
+            return "None";
+
+        if (wholeObjectAoi)
+        {
+            // Whole-object mode: the object itself is the AOI. No feature map
+            // needed; the area label is the object name.
+            hit.hitObject = CsvSafe(targetHit.transform.name);
+            hit.point = targetHit.point;
+            hit.uv = targetHit.textureCoord;
+            color = Color.white; // nonzero so attentionHeatmap counting stays active
+            return hit.hitObject;
+        }
+
+        if (targetRend.sharedMaterial.shader.name != "Universal Render Pipeline/FeatureMap")
             return "None";
         
         hit.hitObject = targetHit.transform.name;
@@ -604,6 +618,9 @@ public class FeatureMapRaycaster : MonoBehaviour
             name = name.Replace(c, '_');
         return name;
     }
+
+    // Keep object names from breaking the ';'-separated CSV columns.
+    static string CsvSafe(string s) => s.Replace(';', '_').Replace('\n', '_').Replace('\r', '_');
     // Self-describing recording metadata (aoi-v3) for replicability. JsonUtility-
     // compatible: [Serializable] + public fields, no Newtonsoft.
     [Serializable]
@@ -623,6 +640,7 @@ public class FeatureMapRaycaster : MonoBehaviour
         public bool useEyeTracking;
         public bool attentionHeatmap;
         public bool saveHeatmapImage;
+        public bool wholeObjectAoi;
         public float heatmapGain;
         public string featureMapTexture;
         public int featureMapWidth;

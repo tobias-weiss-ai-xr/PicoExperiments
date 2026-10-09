@@ -86,6 +86,13 @@ tracking is enabled (`useEyeTracking`, off by default), the AoI ray follows the
 stale or invalid. The debug ray visualizes the active source
 (blue = eye gaze, red = committed area, green = none).
 
+**Whole-object mode** (`wholeObjectAoi`): a self-contained example that tracks
+entire objects without AOIs — no feature map texture or special shader needed.
+Any opaque object with a collider becomes an AOI whose label is its object
+name; everything downstream (debounce, cone voting, fixations, CSVs, heatmap,
+PNG export) works unchanged. Objects should be named distinctly
+(e.g. `DemoBox_1`), names are CSV-sanitized.
+
 ### Signal processing
 
 - **Debounce** (`minDwell`, 100 ms): an area must hold this long before a
