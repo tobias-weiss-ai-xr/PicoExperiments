@@ -84,7 +84,7 @@ raycaster resolves the gaze ray to an area label.
 | `AoiTaskManager.cs` | Config-driven visual-search trials (`Assets/Experiments/*.json`): target detection, randomization, shuffles, VR HUD, per-trial heatmaps, audio feedback |
 | `FeatureMap.shader` | URP Lit derivative rendering the feature map; texel colors encode areas (red = *Details*, green = *Advertisement*, blue = *Logo*) |
 | `FeatureMapSpawner.cs` | Instantiates `count` demo products (`Resources/FeatureMapDemo/DemoBox`) in a row on `Spawn` (inspector: `count`, `spacing`); each is tracked and heatmap-exported independently as `DemoBox_N`; `slotMaterials` assigns distinct visuals per slot (real visual search) |
-| `FeatureMapDisplay.cs` | Shows the current area label on TMP text (quick testing) |
+| `FeatureMapDisplay.cs` | Shows the committed area label on TMP text — area name in feature-map mode, object name in whole-object mode (quick testing) |
 | `SensorTracking/EyeTrackingManager.cs` | PICO combined eye gaze (24 Hz, validity-checked); provides the event consumed by the raycaster |
 
 ### How classification works

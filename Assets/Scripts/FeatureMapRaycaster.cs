@@ -245,7 +245,6 @@ public class FeatureMapRaycaster : MonoBehaviour
             fwd = _gazeDirWorld;
 
         string area = ClassifyRay(cameraTransform.position, fwd, out RayHit hit, out Color color);
-        CurrentArea = area;
 
         if (aoiDebugLog && nowMs >= _nextDebugLogMs)
         {
@@ -553,6 +552,7 @@ public class FeatureMapRaycaster : MonoBehaviour
         _currentAoi = newAoi;
         _currentHitObject = hitObject;
         _currentStartMs = nowMs;
+        CurrentArea = newAoi; // committed (debounced) area - stable, no per-frame stray hits
     }
 
     void UpdateFixation(long nowMs, Vector3 dir)
