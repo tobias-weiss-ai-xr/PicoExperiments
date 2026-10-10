@@ -65,9 +65,16 @@ for gaze, areas of interest (AoIs), and user interaction.
 
 ## AoI tracking (`ObjectTracking` scene)
 
-Gaze-based tracking of product areas of interest without any scene wiring:
-products carry a *feature map* texture whose texel colors encode areas, and a
-raycaster resolves the gaze ray to an area label.
+Gaze-based tracking of areas of interest without any scene wiring. The
+raycaster resolves the gaze ray to an area label in one of two modes:
+
+| Mode | What counts as an AOI | Area label | Needs a feature map? |
+|---|---|---|---|
+| **Feature-map** (default) | A surface using the `FeatureMap` shader | Area name from texel color (`Details` / `Advertisement` / `Logo`) | Yes — a colored texture on the product |
+| **Whole-object** (`wholeObjectAoi`) | Any opaque object whose name carries `wholeObjectPrefix` (`DemoBox…`) | The object name | No |
+
+Everything downstream (dwell debounce, cone voting, fixations, CSVs,
+heatmaps, PNG export, task detection) is shared and identical in both modes.
 
 [![Object tracking demo video](img/object-tracking-demo.png)](https://www.youtube.com/watch?v=kq_LtLxVaSw)
 *The ObjectTracking scene: gaze is resolved to product areas in real time —
@@ -94,7 +101,9 @@ the material's `_FeatureMap` texture; the texel color names the area. When eye
 tracking is enabled (`useEyeTracking`, off by default), the AoI ray follows the
 *eyes* instead of the head and falls back to head forward whenever eye data is
 stale or invalid. The debug ray visualizes the active source
-(blue = eye gaze, red = committed area, green = none).
+(blue = eye gaze, red = committed area, green = none). `CurrentArea` — the
+value used by the task manager and `FeatureMapDisplay` — is always the
+*committed* (debounced) area, never a single-frame stray.
 
 **Whole-object mode** (`wholeObjectAoi`): a self-contained example that tracks
 entire objects without AOIs — no feature map texture or special shader needed.
