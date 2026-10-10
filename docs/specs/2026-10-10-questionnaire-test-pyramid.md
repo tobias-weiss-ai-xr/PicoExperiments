@@ -89,8 +89,13 @@ L2 runs in the Unity Test Runner; L3 is a manual/CI-on-demand PlayMode run
 
 ## Tooling
 
-- Unity Test Framework (`com.unity.test-framework`) — EditMode + PlayMode.
-- Headless gate: `tests/questionnaire/` with `dotnet test` if the domain is
-  split into a plainnetstandard.csproj assembly, else EditMode-only. Decision
-  deferred to the JSON-parser decision in the spec; the minimal viable gate is
-  EditMode tests + the existing `ci_check` static check.
+- **Domain in a separate assembly** (resolved 2026-10-10): the pure survey
+  domain is split into its own assembly (referenced by the runtime *and* by a
+  `dotnet test` project) so the L1 unit layer runs as a fast headless static
+  gate with **no Unity editor and no HMD** — closing the project's
+  "can't compile-verify outside the editor" gap. Newtonsoft is a shared
+  reference at the same version as the Unity package.
+- **Unity Test Framework** (`com.unity.test-framework`) — EditMode (L2) and
+  PlayMode (L3) tests.
+- Headless gate mirrors the existing `analysis/ci_check_aoi_v4.py` habit: run
+  `dotnet test` on the domain assembly as the blocking commit check.

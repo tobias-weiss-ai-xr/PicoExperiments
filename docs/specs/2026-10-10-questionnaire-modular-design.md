@@ -100,11 +100,23 @@ Three layers with a single seam (ports & adapters, kept small):
 | New source (REST, CSV) | new `ISurveyDataSource` adapter | runner |
 | New validation rule | `SurveySchema` validator list | runner contract |
 
-## Open questions
+## Decisions (resolved 2026-10-10)
 
-- JSON parser choice: `JsonUtility` (built-in, no UnityEngine.Object-safe for
-  generic lists — needs wrapper) vs `Newtonsoft` (already in the package set
-  via HuggingFace API package) vs `System.Text.Json`. Constraint: must work on
-  Android IL2CPP.
-- Migration: keep the existing SSQ stages byte-identical as the first authored
-  survey asset (parity gate), so the refactor is behavior-preserving.
+- **JSON parser: Newtonsoft.Json.** Already a referenced Unity package
+  (`com.unity.nuget.newtonsoft-json`) and already used on-device by
+  Convai/GLTFUtility — zero new dependencies, IL2CPP/Android compatibility is
+  proven in this codebase. Handles the `config {}` dictionary and future type
+  extensibility that `JsonUtility` cannot (JsonUtility has no Dictionary /
+  polymorphism support). `System.Text.Json` avoided: new dependency + AOT
+  source-generator risk for no benefit at questionnaire data volume.
+- **Domain lives in a separate assembly** (a `netstandard2.1`-compatible
+  assembly referenced by the runtime and by a headless test project) so
+  `dotnet test` / a fast static gate can run the pure layer without the
+  Unity editor — closing the project's "can't compile-verify outside the
+  editor" gap.
+
+## Migration
+
+Keep the existing SSQ stages byte-identical as the first authored survey asset
+(`ssq.json`) enforced by a headless parity gate, so the refactor is
+behavior-preserving.

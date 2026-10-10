@@ -149,6 +149,14 @@ The survey run appends a `questionnaire` block to the same session knowledge if
 a shared manifest is present (future); until then the CSV + JSON suffice and
 are linkable to the AoI/gaze streams via `SubmittedAtEpochMs`.
 
+## 7. Reference parser
+
+**Decision (2026-10-10): Newtonsoft.Json** — already a Unity-package dependency
+and already exercised on-device by existing project code. `config` is
+`Dictionary<string,string>`; domain POCOs use `Newtonsoft.Json` attributes only
+where short field names are wanted. The contract defines the JSON *format*, not
+the parser implementation, so this can be swapped without breaking consumers.
+
 ## Compatibility
 
 - **Migration parity gate:** the first authored `ssq.json` reproduces the exact
