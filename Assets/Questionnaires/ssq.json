@@ -1,0 +1,92 @@
+{
+  "id": "ssq",
+  "title": "Simulator Sickness Questionnaire",
+  "version": 1,
+  "sections": [
+    {
+      "id": "ssq_nausea",
+      "header": "Nausea",
+      "items": [
+        {
+          "id": "nausea_a",
+          "prompt": "Do you experience nausea (e.g., stomach pain, acid reflux, or tension to vomit)?",
+          "type": "slider",
+          "required": true,
+          "config": {
+            "lowText": "Absent Feeling",
+            "mediumText": "Moderate Feeling",
+            "highText": "Extreme Feeling"
+          }
+        },
+        {
+          "id": "nausea_b",
+          "prompt": "Do you experience dizziness (e.g., light-headedness or spinning feeling)?",
+          "type": "slider",
+          "required": true,
+          "config": {
+            "lowText": "Absent Feeling",
+            "mediumText": "Moderate Feeling",
+            "highText": "Extreme Feeling"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ssq_vestibular",
+      "header": "Vestibular",
+      "items": [
+        {
+          "id": "vestibular_a",
+          "prompt": "Do you experience disorientation (e.g., spatial confusion or vertigo)?",
+          "type": "slider",
+          "required": true,
+          "config": {
+            "lowText": "Absent Feeling",
+            "mediumText": "Moderate Feeling",
+            "highText": "Extreme Feeling"
+          }
+        },
+        {
+          "id": "vestibular_b",
+          "prompt": "Do you experience postural instability (i.e., imbalance)?",
+          "type": "slider",
+          "required": true,
+          "config": {
+            "lowText": "Absent Feeling",
+            "mediumText": "Moderate Feeling",
+            "highText": "Extreme Feeling"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ssq_oculomotor",
+      "header": "Oculomotor",
+      "items": [
+        {
+          "id": "oculomotor_a",
+          "prompt": "Do you experience a visually induced fatigue (e.g., feeling of tiredness or sleepiness)?",
+          "type": "slider",
+          "required": true,
+          "config": {
+            "lowText": "Absent Feeling",
+            "mediumText": "Moderate Feeling",
+            "highText": "Extreme Feeling"
+          }
+        },
+        {
+          "id": "oculomotor_b",
+          "prompt": "Do you experience a visually induced discomfort (e.g., eyestrain, blurred vision, or headache)?",
+          "type": "slider",
+          "required": true,
+          "config": {
+            "lowText": "Absent Feeling",
+            "mediumText": "Moderate Feeling",
+            "highText": "Extreme Feeling",
+            "exitOnSubmit": "true"
+          }
+        }
+      ]
+    }
+  ]
+}
