@@ -212,6 +212,17 @@ search blocks, 8 participants): locked inspector settings, both task files
 under `Assets/Experiments/`, validity gates, exclusion rules, analysis plan
 and pre-registration-lite hypotheses all map 1:1 onto the existing outputs.
 
+### Questionnaires (modular design)
+
+The immersive questionnaire scene currently runs a single hard-coded SSQ
+(cybersickness) script. It is being redesigned into a modular, data-driven
+survey system — surveys authored as JSON, pluggable question types and
+loggers, output aligned with the `Recordings/` research stream. Design docs:
+
+- [Spec — modular questionnaire design](docs/specs/2026-10-10-questionnaire-modular-design.md)
+- [Contract — public API & data schema](docs/specs/2026-10-10-questionnaire-contract.md)
+- [Test pyramid — questionnaire testing strategy](docs/specs/2026-10-10-questionnaire-test-pyramid.md)
+
 ## Data locations & alignment
 
 - Editor: `Recordings/` in the project root; console log in
