@@ -11,6 +11,7 @@
   <Project Path="HuggingFaceAPI.csproj" />
   <Project Path="Unity.AI.Navigation.Samples.Initialization.Editor.csproj" />
   <Project Path="Unity.XR.PICO.Editor.csproj" />
+  <Project Path="Questionnaire.Domain.csproj" />
   <Project Path="Siccity.GLTFUtility.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="Unity.XR.Interaction.Toolkit.Samples.DeviceSimulator.csproj" />

@@ -1,0 +1,16 @@
+{
+  "name": "Questionnaire.UI",
+  "rootNamespace": "Questionnaire.UI",
+  "references": [
+    "Questionnaire.Domain",
+    "Unity.Nuget.Newtonsoft.Json"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "autoReferenced": true,
+  "overrideReferences": false,
+  "noEngineReferences": false,
+  "culture": "",
+  "versionDefines": []
+}
