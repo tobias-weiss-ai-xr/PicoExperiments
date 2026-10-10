@@ -98,9 +98,12 @@ stale or invalid. The debug ray visualizes the active source
 
 **Whole-object mode** (`wholeObjectAoi`): a self-contained example that tracks
 entire objects without AOIs — no feature map texture or special shader needed.
-Any opaque object with a collider becomes an AOI whose label is its object
-name; everything downstream (debounce, cone voting, fixations, CSVs, heatmap,
-PNG export) works unchanged. Objects should be named distinctly
+Any opaque object whose name carries `wholeObjectPrefix` (default `DemoBox`)
+becomes an AOI whose label is its object name; everything downstream
+(debounce, cone voting, fixations, CSVs, heatmap, PNG export) works
+unchanged. The prefix keeps environment geometry (walls, shelving, the
+Structure shell) from stealing or occluding the ray — scene furniture can
+never be classified as an AOI. Objects should be named distinctly
 (e.g. `DemoBox_1`), names are CSV-sanitized.
 
 ### Signal processing

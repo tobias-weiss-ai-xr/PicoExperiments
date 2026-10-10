@@ -32,6 +32,7 @@ public class FeatureMapRaycaster : MonoBehaviour
     [SerializeField] bool aoiDebugLog = false; // 1 Hz: ray origin/direction, nearest hit + shader, box status
     [SerializeField] bool saveHeatmapImage = false; // write final heatmaps as PNGs next to the recording on stop
     [SerializeField] bool wholeObjectAoi = false; // example mode: each object is one AOI (area = object name), no feature map needed
+    [SerializeField] string wholeObjectPrefix = "DemoBox"; // in whole-object mode, only names with this prefix count as AOIs (environment colliders stay background)
     [SerializeField] bool logPerformance = false; // 1 Hz FPS sample to <prefix>-perf.csv (data-validity check)
     [SerializeField] float heatmapGain = 1.0f;
 
@@ -373,24 +374,43 @@ public class FeatureMapRaycaster : MonoBehaviour
         // Prefer opaque hit, fall back to transparent
         Renderer targetRend = firstOpaqueRend ?? firstTransparentRend;
         RaycastHit targetHit = firstOpaqueRend != null ? firstOpaqueHit : firstTransparentHit;
-        
+
+        if (wholeObjectAoi)
+        {
+            // Whole-object mode: the object itself is the AOI. No feature map
+            // needed; the area label is the object name. Only renderers whose
+            // name carries the prefix count as AOIs - environment geometry
+            // (Structure shell, shelving, walls) can then never steal the ray
+            // and make the classification pendulum between real target and
+            // scenery. First match in the distance-sorted buffer = nearest.
+            for (int i = 0; i < n; i++)
+            {
+                Transform t = _rayHits[i].transform;
+                if (!t.name.StartsWith(wholeObjectPrefix, StringComparison.Ordinal))
+                    continue;
+                targetRend = t.GetComponent<Renderer>();
+                if (targetRend == null)
+                    continue;
+                targetHit = _rayHits[i];
+                break;
+            }
+            if (targetRend == null)
+                return "None";
+            hit.hitObject = CsvSafe(targetHit.transform.name);
+            hit.point = targetHit.point;
+            hit.uv = targetHit.textureCoord;
+            color = Color.white; // nonzero so attentionHeatmap counting stays active
+            if (attentionHeatmap && countHeat)
+                CountHeat(targetRend, targetHit.textureCoord);
+            return hit.hitObject;
+        }
+
         if (targetRend == null || targetRend.sharedMaterial == null)
             return "None";
         
         Collider collider = targetHit.collider;
         if (collider == null)
             return "None";
-
-        if (wholeObjectAoi)
-        {
-            // Whole-object mode: the object itself is the AOI. No feature map
-            // needed; the area label is the object name.
-            hit.hitObject = CsvSafe(targetHit.transform.name);
-            hit.point = targetHit.point;
-            hit.uv = targetHit.textureCoord;
-            color = Color.white; // nonzero so attentionHeatmap counting stays active
-            return hit.hitObject;
-        }
 
         if (targetRend.sharedMaterial.shader.name != "Universal Render Pipeline/FeatureMap")
             return "None";
@@ -409,34 +429,39 @@ public class FeatureMapRaycaster : MonoBehaviour
                              Mathf.Clamp((int)texel.y, 0, tex.height - 1));
         
         if (attentionHeatmap && countHeat && color != Color.clear)
-        {
-            int rid = targetRend.GetInstanceID();
-            if (!_heatmapTex.TryGetValue(rid, out Texture2D heatTex))
-            {
-                heatTex = new Texture2D(HeatmapSize, HeatmapSize, TextureFormat.RGBA32, false);
-                _heatmapTex[rid] = heatTex;
-                _heatNames[rid] = targetRend.name;
-                _heatCounts[rid] = new float[HeatmapSize * HeatmapSize];
-                _heatPixels[rid] = new Color[HeatmapSize * HeatmapSize]; // Color.black default
-                _heatMax[rid] = 0f;
-                heatTex.SetPixels(_heatPixels[rid]);
-                heatTex.Apply(false);
-                targetRend.material.SetTexture("_EmissionMap", heatTex);
-                targetRend.material.SetColor("_EmissionColor", Color.white); // default is black = invisible
-                targetRend.material.EnableKeyword("_EMISSION");
-            }
-            Vector2 huv = targetHit.textureCoord;
-            int px = Mathf.Clamp((int)(huv.x * HeatmapSize), 0, HeatmapSize - 1);
-            int py = Mathf.Clamp((int)(huv.y * HeatmapSize), 0, HeatmapSize - 1);
-            float[] counts = _heatCounts[rid];
-            int idx = py * HeatmapSize + px;
-            counts[idx] += heatmapGain;
-            if (counts[idx] > _heatMax[rid])
-                _heatMax[rid] = counts[idx];
-            _heatDirty.Add(rid);
-        }
+            CountHeat(targetRend, targetHit.textureCoord);
         
         return ClassifyAoi(color);
+    }
+
+    // One heat hit on a renderer's surface at UV coords: lazily create the
+    // 256x256 attention texture (and wire it into the material's emission) and
+    // bump the corresponding texel. Shared by whole-object and feature-map mode.
+    void CountHeat(Renderer targetRend, Vector2 texCoord)
+    {
+        int rid = targetRend.GetInstanceID();
+        if (!_heatmapTex.TryGetValue(rid, out Texture2D heatTex))
+        {
+            heatTex = new Texture2D(HeatmapSize, HeatmapSize, TextureFormat.RGBA32, false);
+            _heatmapTex[rid] = heatTex;
+            _heatNames[rid] = targetRend.name;
+            _heatCounts[rid] = new float[HeatmapSize * HeatmapSize];
+            _heatPixels[rid] = new Color[HeatmapSize * HeatmapSize]; // Color.black default
+            _heatMax[rid] = 0f;
+            heatTex.SetPixels(_heatPixels[rid]);
+            heatTex.Apply(false);
+            targetRend.material.SetTexture("_EmissionMap", heatTex);
+            targetRend.material.SetColor("_EmissionColor", Color.white); // default is black = invisible
+            targetRend.material.EnableKeyword("_EMISSION");
+        }
+        int px = Mathf.Clamp((int)(texCoord.x * HeatmapSize), 0, HeatmapSize - 1);
+        int py = Mathf.Clamp((int)(texCoord.y * HeatmapSize), 0, HeatmapSize - 1);
+        float[] counts = _heatCounts[rid];
+        int idx = py * HeatmapSize + px;
+        counts[idx] += heatmapGain;
+        if (counts[idx] > _heatMax[rid])
+            _heatMax[rid] = counts[idx];
+        _heatDirty.Add(rid);
     }
 
     // Tone-map raw counts to a black->red->white ramp (log-normalized) and
