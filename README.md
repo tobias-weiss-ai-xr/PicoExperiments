@@ -214,14 +214,19 @@ and pre-registration-lite hypotheses all map 1:1 onto the existing outputs.
 
 ### Questionnaires (modular design)
 
-The immersive questionnaire scene currently runs a single hard-coded SSQ
-(cybersickness) script. It is being redesigned into a modular, data-driven
-survey system — surveys authored as JSON, pluggable question types and
-loggers, output aligned with the `Recordings/` research stream. Design docs:
+The immersive questionnaire scene has been redesigned into a **modular, data-driven**
+survey system with pluggable question types, JSON-authored surveys, and output
+aligned with the `Recordings/` research stream.
 
-- [Spec — modular questionnaire design](docs/specs/2026-10-10-questionnaire-modular-design.md)
-- [Contract — public API & data schema](docs/specs/2026-10-10-questionnaire-contract.md)
-- [Test pyramid — questionnaire testing strategy](docs/specs/2026-10-10-questionnaire-test-pyramid.md)
+- **Domain** (`Assets/Questionnaire/Domain/`): Survey, Section, Item POCOs; SurveyRunner; CSV-safe validation
+- **UI** (`Assets/Questionnaire/UI/`): CsvSurveyLogger, Slider/Likert5/YesNo/SingleChoice/OpenText widgets, SurveySceneView
+- **Spec docs**:
+  - [Spec — modular questionnaire design](docs/specs/2026-10-10-questionnaire-modular-design.md)
+  - [Contract — public API & data schema](docs/specs/2026-10-10-questionnaire-contract.md)
+  - [Test pyramid — questionnaire testing strategy](docs/specs/2026-10-10-questionnaire-test-pyramid.md)
+  - [Setup — wiring the questionnaire in your scene](docs/questionnaire-setup.md)
+- **Headless tests**: 21 domain tests pass with `dotnet test tests/questionnaire/Questionnaire.Tests.csproj`
+- **Integration**: `AoiTaskManager` can now trigger surveys before/after trial blocks (see [setup guide](docs/questionnaire-setup.md))
 
 ## Data locations & alignment
 
