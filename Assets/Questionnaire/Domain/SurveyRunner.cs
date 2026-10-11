@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 
-namespace Questionnaire;
-
+namespace Questionnaire
+{
 /// <summary>Orchestrates a survey walk-through. Headless-testable (no Unity types).</summary>
 public sealed class SurveyRunner : IDisposable
 {
@@ -21,8 +21,8 @@ public sealed class SurveyRunner : IDisposable
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _nowMs = nowMs ?? throw new ArgumentNullException(nameof(nowMs));
         _items = new List<Item>();
-        foreach (var sec in survey.sections ?? new())
-        foreach (var it in sec.items ?? new())
+        foreach (var sec in survey.sections ?? new List<Section>())
+        foreach (var it in sec.items ?? new List<Item>())
             _items.Add(it);
         _itemStartMs = _nowMs();
     }
@@ -31,7 +31,7 @@ public sealed class SurveyRunner : IDisposable
 
     public bool IsComplete => _index >= _items.Count;
 
-    public Item? CurrentItem => IsComplete ? null : _items[_index];
+    public Item CurrentItem => IsComplete ? null : _items[_index];
 
     public bool CanSubmit => _widget != null && _widget.IsComplete;
 
@@ -47,10 +47,10 @@ public sealed class SurveyRunner : IDisposable
         var response = new SurveyResponse(
             surveyId: _survey.id,
             surveyVersion: _survey.version,
-            sectionId: FindSectionId(item), // section id containing this item
-            itemId: item!.id,
+            sectionId: FindSectionId(item),
+            itemId: item.id,
             type: item.type,
-            value: _widget!.ReadValue(),
+            value: _widget.ReadValue(),
             submittedAtEpochMs: now,
             durationSec: (float)(now - _itemStartMs) / 1000.0f);
 
@@ -63,7 +63,6 @@ public sealed class SurveyRunner : IDisposable
         }
         else
         {
-            // Final Submit triggers close once
             _logger.Close();
             _closed = true;
         }
@@ -72,7 +71,7 @@ public sealed class SurveyRunner : IDisposable
         return true;
     }
 
-    private string FindSectionId(Item? item)
+    private string FindSectionId(Item item)
     {
         if (item == null || _survey.sections == null) return string.Empty;
         foreach (var sec in _survey.sections)
@@ -92,4 +91,5 @@ public sealed class SurveyRunner : IDisposable
     }
 
     public void Dispose() => Close();
+}
 }

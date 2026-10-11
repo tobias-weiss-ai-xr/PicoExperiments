@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 
-namespace Questionnaire;
-
+namespace Questionnaire
+{
 public static class SurveySchema
 {
     public static Survey Parse(string json)
@@ -51,4 +51,5 @@ public static class SurveySchema
         }
         return errors;
     }
+}
 }

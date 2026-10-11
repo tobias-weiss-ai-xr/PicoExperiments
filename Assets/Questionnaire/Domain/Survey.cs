@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 
-namespace Questionnaire;
-
+namespace Questionnaire
+{
 [Serializable]
 public sealed class Survey
 {
@@ -33,4 +33,5 @@ public sealed class Item
     [JsonIgnore]
     public bool ExitAfterSubmit =>
         config != null && config.TryGetValue("exitOnSubmit", out var v) && v == "true";
+}
 }

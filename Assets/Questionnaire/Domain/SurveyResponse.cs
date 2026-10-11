@@ -1,5 +1,5 @@
-namespace Questionnaire;
-
+namespace Questionnaire
+{
 /// <summary>
 /// A committed response to one survey item. Immutable; logged by the runner.
 /// </summary>
@@ -29,4 +29,5 @@ public readonly struct SurveyResponse
         SubmittedAtEpochMs = submittedAtEpochMs;
         DurationSec = durationSec;
     }
+}
 }

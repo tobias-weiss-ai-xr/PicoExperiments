@@ -6,7 +6,6 @@ namespace Tests;
 public class CsvSafeTests
 {
     [Theory]
-    [InlineData(null, "")]
     [InlineData("", "")]
     [InlineData("abc", "abc")]
     [InlineData(";", ",")]

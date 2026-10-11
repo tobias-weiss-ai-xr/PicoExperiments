@@ -1,28 +1,30 @@
 using System;
-using System.Collections.Generic;
 
-namespace Questionnaire;
+namespace Questionnaire
+{
+/// <summary>Public ports for the Questionnaire domain (stable API).</summary>
 
-/// <summary>Port: one UI widget that renders an Item and captures a response.</summary>
+/// <typeparam name="T">Widget type for rendering a question.</typeparam>
 public interface IQuestionWidget
 {
     string Type { get; }
-    void Configure(Item item);
     bool IsComplete { get; }
+    void Configure(Item item);
     string ReadValue();
     void Show(bool visible);
 }
 
-/// <summary>Port: persists SurveyResponse rows.</summary>
-public interface ISurveyLogger
+/// <summary>Hook for writing survey responses.</summary>
+public interface ISurveyLogger : IDisposable
 {
     void Open(string participantId, string scene, string surveyId);
     void Log(in SurveyResponse response);
     void Close();
 }
 
-/// <summary>Port: loads a Survey from some source (asset, REST, ...).</summary>
+/// <summary>Hook for loading survey definitions.</summary>
 public interface ISurveyDataSource
 {
     Survey Load();
+}
 }

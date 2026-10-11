@@ -1,5 +1,5 @@
-namespace Questionnaire;
-
+namespace Questionnaire
+{
 /// <summary>
 /// CSV-safe helpers. Keeps id/value strings safe for ';' -delimited files.
 /// Same logic as the FeatureMapRaycaster internal CsvSafe (replace newlines with space, ';' with ',').
@@ -19,4 +19,5 @@ public static class CsvSafe
             return true;
         return s.IndexOfAny(new[] { ';', '\r', '\n' }) < 0;
     }
+}
 }

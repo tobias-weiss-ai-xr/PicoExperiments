@@ -88,5 +88,7 @@ namespace Questionnaire
         }
 
         ~SimpleCsvLogger() => Close();
+
+    public void Dispose() => Close();
     }
 }

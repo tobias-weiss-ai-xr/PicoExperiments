@@ -1,15 +1,17 @@
 using System.Collections.Generic;
 
-namespace Questionnaire;
-
+namespace Questionnaire
+{
+/// <summary>V1 = currently supported question types. ID is lowercase.</summary>
 public static class KnownQuestionTypes
 {
-    public static readonly IReadOnlyList<string> V1 = new List<string>
+    public static readonly IReadOnlySet<string> V1 = new HashSet<string>
     {
         "slider",
         "likert5",
-        "yesNo",
-        "singleChoice",
-        "openText"
+        "yesno",
+        "singlechoice",
+        "opentext"
     };
+}
 }

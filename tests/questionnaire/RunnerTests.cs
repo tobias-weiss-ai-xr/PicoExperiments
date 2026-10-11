@@ -24,6 +24,7 @@ internal sealed class SpyLogger : ISurveyLogger
     public void Open(string participantId, string scene, string surveyId) => OpenCount++;
     public void Log(in SurveyResponse r) => Responses.Add(r);
     public void Close() => CloseCount++;
+    public void Dispose() => Close();
 }
 
 public class RunnerTests
