@@ -251,12 +251,12 @@ namespace Questionnaire.UI
             {
                 var slider = sliderGo.GetComponent<Slider>();
                 if (slider != null) slider.value = 0.5f;
-                sliderGo.Find("Low Text")?.GetComponent<TMP_Text>()?.text = 
-                    item.config?.Get("lowText", "Absent");
-                sliderGo.Find("Medium Text")?.GetComponent<TMP_Text>()?.text = 
-                    item.config?.Get("mediumText", "Moderate");
-                sliderGo.Find("High Text")?.GetComponent<TMP_Text>()?.text = 
-                    item.config?.Get("highText", "Extreme");
+                var lowT = sliderGo.transform.Find("Low Text")?.GetComponent<TMP_Text>();
+                if (lowT != null) lowT.text = item.config?.Get("lowText", "Absent");
+                var medT = sliderGo.transform.Find("Medium Text")?.GetComponent<TMP_Text>();
+                if (medT != null) medT.text = item.config?.Get("mediumText", "Moderate");
+                var highT = sliderGo.transform.Find("High Text")?.GetComponent<TMP_Text>();
+                if (highT != null) highT.text = item.config?.Get("highText", "Extreme");
             }
         }
 
