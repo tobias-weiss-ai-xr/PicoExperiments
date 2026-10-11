@@ -304,8 +304,6 @@ public class AoiTaskManager : MonoBehaviour
     }
 
     void OnDestroy()
-
-    void OnDestroy()
     {
         _writer?.Dispose();
         _writer = null;
