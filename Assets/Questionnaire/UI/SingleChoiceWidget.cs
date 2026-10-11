@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using Newtonsoft.Json.Linq;
 
 namespace Questionnaire.UI
 {
@@ -79,7 +80,7 @@ namespace Questionnaire.UI
             if (item.config.TryGetValue("options", out var jsonOptions))
             {
                 try {
-                    return System.Text.Json.Nodes.JsonNode.Parse(jsonOptions).AsArray().Select(n => n.GetValue<string>()).ToList();
+                    return JArray.Parse(jsonOptions).Select(t => t.Value<string>()).ToList();
                 } catch {}
             }
 

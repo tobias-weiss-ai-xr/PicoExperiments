@@ -43,6 +43,7 @@ namespace Questionnaire.UI
         [Tooltip("Direct JSON for the survey. If set, overrides surveyAsset.")]
         [SerializeField] private TextAsset _surveyAsset;
         [SerializeField] private string _surveyJsonText;
+        private string _surveyJsonOverride;
         [SerializeField] private string _participantId = "";
         [SerializeField] private bool _autoStart = true;
 
@@ -71,7 +72,9 @@ namespace Questionnaire.UI
 
             if (_surveyAsset == null && !string.IsNullOrEmpty(_surveyJsonText))
             {
-                _surveyAsset = new TextAsset { text = _surveyJsonText };
+                // TextAsset.text is read-only, so we cannot create one from code.
+                // Instead, use surveyJsonText directly when loading.
+                _surveyJsonOverride = _surveyJsonText;
             }
         }
 
@@ -96,7 +99,10 @@ namespace Questionnaire.UI
 
             try
             {
-                _survey = SurveySchema.Parse(_surveyAsset.text);
+                string json = _surveyJsonOverride ?? _surveyAsset?.text;
+                if (string.IsNullOrEmpty(json))
+                    throw new System.InvalidOperationException("No survey JSON provided. Assign a TextAsset or set surveyJsonText.");
+                _survey = SurveySchema.Parse(json);
             }
             catch (Exception ex)
             {

@@ -77,10 +77,12 @@ namespace Questionnaire.UI
                             : itemData.id,
                         prompt = itemData.prompt ?? "",
                         type = string.IsNullOrEmpty(itemData.type) ? "openText" : itemData.type.ToLowerInvariant(),
-                        exitAfterSubmit = itemData.exitAfterSubmit,
                         required = itemData.required,
                         config = new Dictionary<string, string>()
                     };
+                    // ExitAfterSubmit is read-only from config["exitOnSubmit"]
+                    if (itemData.exitAfterSubmit)
+                        item.config["exitOnSubmit"] = "true";
                     foreach (var cfg in itemData.config ?? new List<ConfigEntry>())
                         if (!string.IsNullOrEmpty(cfg.key))
                             item.config[cfg.key] = cfg.value ?? "";
