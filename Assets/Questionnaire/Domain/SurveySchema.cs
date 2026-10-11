@@ -15,7 +15,7 @@ public static class SurveySchema
             ?? throw new InvalidDataException("failed to parse survey json");
     }
 
-    public static IReadOnlyList<string> Validate(Survey survey, IReadOnlyCollection<string> knownTypes = null)
+    public static IReadOnlyList<string> Validate(Survey survey, System.Collections.ICollection knownTypes = null)
     {
         var errors = new List<string>();
         knownTypes ??= KnownQuestionTypes.V1;
