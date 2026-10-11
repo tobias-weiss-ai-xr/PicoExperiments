@@ -24,8 +24,8 @@ namespace Questionnaire.UI
 
         public void Configure(Item item)
         {
-            if (_yesLabel != null) _yesLabel.text = item.config?.TryGetOrDefault("yesText", "Yes");
-            if (_noLabel != null)  _noLabel.text  = item.config?.TryGetOrDefault("noText",  "No");
+            if (_yesLabel != null) _yesLabel.text = item.config?.Get("yesText", "Yes");
+            if (_noLabel != null)  _noLabel.text  = item.config?.Get("noText",  "No");
 
             if (_yesToggle != null)
             {

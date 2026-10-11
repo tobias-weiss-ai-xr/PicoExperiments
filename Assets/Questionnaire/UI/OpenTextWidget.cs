@@ -26,9 +26,9 @@ namespace Questionnaire.UI
             {
                 _inputField.text = "";
                 _inputField.placeholder.GetComponent<TMP_Text>()?.text = 
-                    item.config?.TryGetOrDefault("placeholder", "Enter your answer...");
+                    item.config?.Get("placeholder", "Enter your answer...");
 
-                if (int.TryParse(item.config?.TryGetOrDefault("characterLimit", null), out int limit) && limit > 0)
+                if (int.TryParse(item.config?.Get("characterLimit", null), out int limit) && limit > 0)
                     _inputField.characterLimit = limit;
             }
         }

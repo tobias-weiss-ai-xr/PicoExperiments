@@ -26,8 +26,8 @@ namespace Questionnaire.UI
         public void Configure(Item item)
         {
             _item = item;
-            if (_lowLabel != null)  _lowLabel.text = item.config?.TryGetOrDefault("lowText",   "Strongly Disagree");
-            if (_highLabel != null) _highLabel.text = item.config?.TryGetOrDefault("highText", "Strongly Agree");
+            if (_lowLabel != null)  _lowLabel.text = item.config?.Get("lowText",   "Strongly Disagree");
+            if (_highLabel != null) _highLabel.text = item.config?.Get("highText", "Strongly Agree");
 
             for (int i = 0; i < 5; i++)
             {

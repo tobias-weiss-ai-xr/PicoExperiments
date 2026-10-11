@@ -27,9 +27,9 @@ namespace Questionnaire.UI
             _item = item;
             _slider.value = 0.5f; // default middle
 
-            if (_lowText != null)   _lowText.text = item.config?.TryGetOrDefault("lowText", "low");
-            if (_mediumText != null) _mediumText.text = item.config?.TryGetOrDefault("mediumText", "medium");
-            if (_highText != null)  _highText.text = item.config?.TryGetOrDefault("highText", "high");
+            if (_lowText != null)   _lowText.text = item.config?.Get("lowText", "low");
+            if (_mediumText != null) _mediumText.text = item.config?.Get("mediumText", "medium");
+            if (_highText != null)  _highText.text = item.config?.Get("highText", "high");
         }
 
         public string ReadValue() => _slider.value.ToString("F3");
@@ -52,11 +52,4 @@ namespace Questionnaire.UI
             return widget;
         }
     }
-}
-
-// Tiny extension
-internal static class DictExt
-{
-    public static string TryGetOrDefault(this System.Collections.Generic.Dictionary<string, string> dict, string key, string defaultValue)
-        => dict != null && dict.TryGetValue(key, out var v) ? v : defaultValue;
 }

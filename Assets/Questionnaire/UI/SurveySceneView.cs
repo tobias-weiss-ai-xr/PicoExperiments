@@ -246,11 +246,11 @@ namespace Questionnaire.UI
                 var slider = sliderGo.GetComponent<Slider>();
                 if (slider != null) slider.value = 0.5f;
                 sliderGo.Find("Low Text")?.GetComponent<TMP_Text>()?.text = 
-                    item.config?.TryGetOrDefault("lowText", "Absent");
+                    item.config?.Get("lowText", "Absent");
                 sliderGo.Find("Medium Text")?.GetComponent<TMP_Text>()?.text = 
-                    item.config?.TryGetOrDefault("mediumText", "Moderate");
+                    item.config?.Get("mediumText", "Moderate");
                 sliderGo.Find("High Text")?.GetComponent<TMP_Text>()?.text = 
-                    item.config?.TryGetOrDefault("highText", "Extreme");
+                    item.config?.Get("highText", "Extreme");
             }
         }
 
@@ -362,10 +362,4 @@ namespace Questionnaire.UI
             public void Show(bool visible) { }
         }
     }
-}
-
-internal static class DictExt
-{
-    public static string TryGetOrDefault(this System.Collections.Generic.Dictionary<string, string> dict, string key, string defaultValue)
-        => dict != null && dict.TryGetValue(key, out var v) ? v : defaultValue;
 }

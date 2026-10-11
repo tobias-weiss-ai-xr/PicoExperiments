@@ -91,5 +91,7 @@ namespace Questionnaire.UI
         }
 
         ~CsvSurveyLogger() => Close();
+
+        public void Dispose() => Close();
     }
 }
