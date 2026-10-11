@@ -52,40 +52,44 @@ namespace Questionnaire.UI
         {
             var survey = new Survey
             {
-                id = _id,
-                title = _title,
+                id = string.IsNullOrEmpty(_id) ? name.Replace(" ", "_") : _id,
+                title = _title ?? "",
                 version = _version,
                 sections = new List<Section>()
             };
 
-            foreach (var secData in _sections)
+            foreach (var secData in _sections ?? new List<SectionData>())
             {
                 var sec = new Section
                 {
-                    id = secData.id,
-                    header = secData.header,
+                    id = string.IsNullOrEmpty(secData.id) ? (secData.header?.Replace(" ", "_") ?? "section") : secData.id,
+                    header = secData.header ?? "",
                     items = new List<Item>()
                 };
                 survey.sections.Add(sec);
 
-                foreach (var itemData in secData.items)
+                foreach (var itemData in secData.items ?? new List<ItemData>())
                 {
                     var item = new Item
                     {
-                        id = itemData.id,
-                        prompt = itemData.prompt,
-                        type = itemData.type,
+                        id = string.IsNullOrEmpty(itemData.id) 
+                            ? (itemData.prompt?.Replace(" ", "_").Replace("?","").Replace("!","") ?? "item") 
+                            : itemData.id,
+                        prompt = itemData.prompt ?? "",
+                        type = string.IsNullOrEmpty(itemData.type) ? "openText" : itemData.type.ToLowerInvariant(),
                         exitAfterSubmit = itemData.exitAfterSubmit,
                         required = itemData.required,
                         config = new Dictionary<string, string>()
                     };
-                    foreach (var cfg in itemData.config)
+                    foreach (var cfg in itemData.config ?? new List<ConfigEntry>())
                         if (!string.IsNullOrEmpty(cfg.key))
-                            item.config[cfg.key] = cfg.value;
+                            item.config[cfg.key] = cfg.value ?? "";
                     sec.items.Add(item);
                 }
             }
 
+            // Validate
+            SurveyValidator.ValidateOrThrow(survey, w => UnityEngine.Debug.LogWarning(w));
             return survey;
         }
 

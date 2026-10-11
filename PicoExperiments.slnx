@@ -7,6 +7,7 @@
   <Project Path="ReadyPlayerMe.csproj" />
   <Project Path="PICO.Platform.csproj" />
   <Project Path="soupday.cc3_unity_tools.editor.csproj" />
+  <Project Path="Questionnaire.UI.csproj" />
   <Project Path="PICO.TobSupport.csproj" />
   <Project Path="HuggingFaceAPI.csproj" />
   <Project Path="Unity.AI.Navigation.Samples.Initialization.Editor.csproj" />

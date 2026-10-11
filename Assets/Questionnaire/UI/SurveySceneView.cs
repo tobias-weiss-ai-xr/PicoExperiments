@@ -104,6 +104,15 @@ namespace Questionnaire.UI
                 return;
             }
 
+            // Validate survey structure
+            var validation = SurveyValidator.Validate(_survey);
+            if (!validation.IsValid)
+            {
+                Debug.LogError($"[SurveySceneView] {validation.ToString()}");
+                return;
+            }
+            SurveyValidator.ValidateOrThrow(_survey, w => Debug.LogWarning("[SurveySceneView] " + w));
+
             if (string.IsNullOrEmpty(_survey.id))
             {
                 Debug.LogError("[SurveySceneView] Survey has no id.");
