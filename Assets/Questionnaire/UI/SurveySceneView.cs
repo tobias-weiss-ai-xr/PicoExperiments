@@ -11,12 +11,20 @@ namespace Questionnaire.UI
 {
     /// <summary>
     /// MonoBehaviour that presents a survey in VR. Replaces CsqQuestionnaire.
-    /// Drives SurveyRunner + ISurveyLogger + IQuestionWidget instances.
-    /// Auto-routes item.type string to specific widget prefabs (SliderWidget, etc.)
+    ///
+    /// Auto-routes item.type string to specific widget prefabs.
+    /// Prefab naming convention: "Widget_Slider", "Widget_Likert5", etc.
+    /// 
+    /// Auto-detection (legacy CsqQuestionnaire hierarchy):
+    ///   - Item (GameObject template)
+    ///   - Header Text (TMP_Text)
+    ///   - Modal Text (TMP_Text)  
+    ///   - UI MinMaxSlider/Slider (UnityEngine.UI.Slider)
+    ///   - Buttons/Submit (Button)
     /// </summary>
     public sealed class SurveySceneView : MonoBehaviour
     {
-        [Header("Dialog UI")]
+        [Header("Dialog UI (auto-detected from children)")]
         [SerializeField] private GameObject _itemPrefab;
         [SerializeField] private Transform _itemContainer;
         [SerializeField] private TMP_Text _headerText;
@@ -24,21 +32,24 @@ namespace Questionnaire.UI
         [SerializeField] private Button _nextButton;
         [SerializeField] private TMP_Text _nextButtonLabel;
 
-        [Header("Widget routing (optional: override per type)")]
+        [Header("Widget Prefabs (optional: override auto-loading from Resources)")]
         [SerializeField] private GameObject _sliderPrefab;
         [SerializeField] private GameObject _likert5Prefab;
         [SerializeField] private GameObject _yesNoPrefab;
         [SerializeField] private GameObject _singleChoicePrefab;
         [SerializeField] private GameObject _openTextPrefab;
 
-        [Header("Survey source")]
-        [SerializeField] private ISurveyDataSource _surveySource;
+        [Header("Survey Source")]
+        [Tooltip("Direct JSON for the survey. If set, overrides surveyAsset.")]
+        [SerializeField] private TextAsset _surveyAsset;
+        [SerializeField] private string _surveyJsonText;
         [SerializeField] private string _participantId = "";
         [SerializeField] private bool _autoStart = true;
 
         [Header("Navigation")]
         [SerializeField] private string _exitScene = "00_Menu";
         [SerializeField] private bool _logDebug = true;
+        [SerializeField] private bool _autoAdvanceOnCompleteWidget = true;
 
         // Runtime state
         private Survey _survey;
@@ -46,6 +57,7 @@ namespace Questionnaire.UI
         private CsvSurveyLogger _logger;
         private GameObject _currentStageGo;
         private IQuestionWidget _currentWidget;
+        private bool _closed;
 
         private void Awake()
         {
@@ -57,7 +69,10 @@ namespace Questionnaire.UI
             if (_nextButton == null) _nextButton = transform.Find("Buttons/Submit")?.GetComponent<Button>();
             if (_nextButtonLabel == null) _nextButtonLabel = _nextButton?.GetComponentInChildren<TMP_Text>(includeInactive: true);
 
-            if (_surveySource == null) _surveySource = GetComponent<ISurveyDataSource>();
+            if (_surveyAsset == null && !string.IsNullOrEmpty(_surveyJsonText))
+            {
+                _surveyAsset = new TextAsset { text = _surveyJsonText };
+            }
         }
 
         private IEnumerator Start()
@@ -65,23 +80,37 @@ namespace Questionnaire.UI
             if (!_autoStart) yield break;
             yield return null; // Let Awake / serialization finish
 
+            LoadAndStartSurvey();
+        }
+
+        public void LoadAndStartSurvey()
+        {
+            // Don't restart if already running
+            if (_runner != null && !_runner.IsComplete) return;
+
+            if (_surveyAsset == null)
+            {
+                Debug.LogError("[SurveySceneView] No survey asset assigned. Assign a TextAsset or set surveyJsonText.");
+                return;
+            }
+
             try
             {
-                _survey = _surveySource?.Load() ?? throw new InvalidOperationException("SurveySource is required");
-                if (string.IsNullOrEmpty(_survey.id))
-                    throw new InvalidOperationException("Survey loaded but has no id");
+                _survey = SurveySchema.Parse(_surveyAsset.text);
             }
             catch (Exception ex)
             {
-                Debug.LogError($"[SurveySceneView] Failed to load survey: {ex.Message}");
-                yield break;
+                Debug.LogError($"[SurveySceneView] Failed to parse survey: {ex.Message}");
+                return;
             }
 
-            InitializeRunner();
-        }
+            if (string.IsNullOrEmpty(_survey.id))
+            {
+                Debug.LogError("[SurveySceneView] Survey has no id.");
+                return;
+            }
 
-        private void InitializeRunner()
-        {
+            _closed = false;
             _logger = new CsvSurveyLogger();
             var sceneName = SceneManager.GetActiveScene().name;
             _logger.Open(_participantId, sceneName, _survey.id);
@@ -91,8 +120,11 @@ namespace Questionnaire.UI
                 _logger,
                 () => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
 
-            _nextButton.onClick.RemoveAllListeners();
-            _nextButton.onClick.AddListener(OnNextButton);
+            if (_nextButton != null)
+            {
+                _nextButton.onClick.RemoveAllListeners();
+                _nextButton.onClick.AddListener(OnNextButton);
+            }
 
             ShowCurrent();
         }
@@ -100,112 +132,174 @@ namespace Questionnaire.UI
         private void ShowCurrent()
         {
             var item = _runner.CurrentItem;
-            if (item == null) return;
+            if (item == null)
+            {
+                HandleCompletion();
+                return;
+            }
 
             // Destroy previous stage
-            if (_currentStageGo != null) Destroy(_currentStageGo);
-            _currentStageGo = null;
+            if (_currentStageGo != null)
+            {
+                Destroy(_currentStageGo);
+                _currentStageGo = null;
+            }
             _currentWidget = null;
 
             // Header texts
             if (_headerText != null) _headerText.text = item.SectionHeaderFor(_survey);
             if (_modalText != null) _modalText.text = item.prompt;
 
-            // Button label
+            // Button label - use localized per-item exit preference
+            bool shouldExit = _runner.IsComplete || (item != null && item.ExitAfterSubmit);
             if (_nextButtonLabel != null)
-                _nextButtonLabel.text = _runner.IsComplete ? "Exit" : (
-                    _runner.CurrentItem.ExitAfterSubmit ? "Exit" : "Next");
+                _nextButtonLabel.text = shouldExit ? "Exit" : "Next";
 
-            // Instantiate item UI based on type
-            var prefab = SelectPrefabFor(item.type);
-            if (prefab != null)
-            {
-                _currentStageGo = Instantiate(prefab, _itemContainer);
-                _currentWidget = _currentStageGo.GetComponent<IQuestionWidget>();
-                if (_currentWidget != null)
-                    _currentWidget.Configure(item);
-            }
-
-            // Fallback: legacy slider via CsqQuestionnaire hierarchy
-            if (_currentWidget == null && item.type == "slider")
-            {
-                LegacySliderSetup(item);
-            }
+            // Decide on widget type from item config
+            _currentStageGo = InstantiateCorrectWidget(item);
 
             if (_currentStageGo != null)
                 _currentStageGo.SetActive(true);
 
-            // Auto-mark not complete if widget incomplete
-            _nextButton.interactable = _currentWidget == null || _currentWidget.IsComplete;
+            UpdateSubmitButton();
         }
 
-        private GameObject SelectPrefabFor(string type)
+        private GameObject InstantiateCorrectWidget(Item item)
         {
-            return type switch
+            var type = item.type.ToLowerInvariant();
+            GameObject prefab = null;
+
+            // Try explicit assignments first
+            switch (type)
             {
-                "slider"     => _sliderPrefab ?? _itemPrefab,
-                "likert5"   => _likert5Prefab,
-                "yesNo"     => _yesNoPrefab,
-                "singleChoice" => _singleChoicePrefab,
-                "openText"  => _openTextPrefab,
-                _           => null
-            };
+                case "slider":     prefab = _sliderPrefab ?? _itemPrefab; break;
+                case "likert5":   prefab = _likert5Prefab; break;
+                case "yesno":     prefab = _yesNoPrefab; break;
+                case "singlechoice": prefab = _singleChoicePrefab; break;
+                case "opentext":  prefab = _openTextPrefab; break;
+            }
+
+            // Fallback: try Resources loading with naming convention
+            if (prefab == null)
+            {
+                var resourcePath = TryFindResourcePath(type);
+                prefab = Resources.Load<GameObject>(resourcePath);
+            }
+
+            // Last fallback: legacy Item prefab for slider
+            if (prefab == null && type == "slider" && _itemPrefab != null)
+                prefab = _itemPrefab;
+
+            if (prefab == null)
+            {
+                if (_logDebug)
+                    Debug.LogWarning($"[SurveySceneView] No prefab found for item type '{type}'. Skipping widget.");
+                return null;
+            }
+
+            var go = Instantiate(prefab, _itemContainer ?? transform);
+            go.name = "Widget_" + item.id + "_" + type;
+
+            // Get widget component and configure
+            _currentWidget = go.GetComponent<IQuestionWidget>();
+            if (go.transform.parent != null) go.transform.SetAsLastSibling();
+
+            if (_currentWidget != null)
+                _currentWidget.Configure(item);
+            else if (type == "slider" && _logDebug)
+                LegacySliderSetup(go, item);
+
+            return go;
         }
 
-        private void LegacySliderSetup(Item item)
+        private string TryFindResourcePath(string type)
         {
-            if (_itemPrefab == null) return;
+            var candidates = new[]
+            {
+                "Widgets/Widget_" + type,
+                "Widget_" + type,
+                "Widgets/" + type,
+                type
+            };
+            foreach (var path in candidates)
+            {
+                var prefab = Resources.Load<GameObject>(path);
+                if (prefab != null) return path;
+            }
+            return null;
+        }
 
-            _currentStageGo = Instantiate(_itemPrefab, _itemContainer);
-            var sliderGo = _currentStageGo.transform.Find("UI MinMaxSlider");
+        private void LegacySliderSetup(GameObject go, Item item)
+        {
+            var sliderGo = go.transform.Find("UI MinMaxSlider");
             if (sliderGo != null)
             {
                 var slider = sliderGo.GetComponent<Slider>();
                 if (slider != null) slider.value = 0.5f;
                 sliderGo.Find("Low Text")?.GetComponent<TMP_Text>()?.text = 
-                    item.config?.TryGetOrDefault("lowText", "Absent Feeling");
+                    item.config?.TryGetOrDefault("lowText", "Absent");
                 sliderGo.Find("Medium Text")?.GetComponent<TMP_Text>()?.text = 
-                    item.config?.TryGetOrDefault("mediumText", "Moderate Feeling");
+                    item.config?.TryGetOrDefault("mediumText", "Moderate");
                 sliderGo.Find("High Text")?.GetComponent<TMP_Text>()?.text = 
-                    item.config?.TryGetOrDefault("highText", "Extreme Feeling");
+                    item.config?.TryGetOrDefault("highText", "Extreme");
             }
-            _currentWidget = new FakeSliderWidget(); // Will be populated in OnNext
         }
 
-        private void OnNextButton()
+        private void UpdateSubmitButton()
         {
-            var item = _runner.CurrentItem;
-            if (item == null || !item.ExitAfterSubmit) return;
+            if (_nextButton == null) return;
+            bool canSubmit = _currentWidget == null || _currentWidget.IsComplete;
+            _nextButton.interactable = canSubmit && !_closed;
+        }
 
-            // Capture value from current UI
-            if (_currentWidget != null)
+        public void OnNextButton()
+        {
+            if (_closed) return;
+
+            var item = _runner.CurrentItem;
+            if (item == null)
             {
-                _runner.AttachWidget(_currentWidget);
+                HandleCompletion();
+                return;
             }
-            // Legacy slider: capture from instantiated GameObject
-            else if (_currentStageGo != null && item.type == "slider")
+
+            // Capture value from current widget
+            try
             {
-                var sliderGo = _currentStageGo.transform.Find("UI MinMaxSlider");
-                var slider = sliderGo?.GetComponent<Slider>();
-                if (slider != null)
+                if (_currentWidget != null)
                 {
-                    _runner.AttachWidget(new FakeSliderWidget(slider.value));
+                    _runner.AttachWidget(_currentWidget);
+                }
+                // Legacy slider in Item prefab: capture from GameObject
+                else if (_currentStageGo != null && item.type.ToLowerInvariant() == "slider")
+                {
+                    var sliderGo = _currentStageGo.transform.Find("UI MinMaxSlider");
+                    var slider = sliderGo?.GetComponent<Slider>();
+                    if (slider != null)
+                    {
+                        _runner.AttachWidget(new FakeSliderWidget(slider.value));
+                    }
                 }
             }
-
-            if (_runner.CanSubmit || _runner.IsComplete)
+            catch (Exception ex)
             {
-                _runner.Submit();
+                Debug.LogError($"[SurveySceneView] Failed to attach widget: {ex.Message}");
+            }
+
+            if (_runner.CanSubmit)
+            {
+                bool submitted = _runner.Submit();
+                if (!submitted && _logDebug)
+                    Debug.LogWarning("[SurveySceneView] Submit returned false");
             }
             else if (_logDebug)
             {
-                Debug.LogWarning("[SurveySceneView] Cannot submit - item not complete");
-                return;
+                Debug.LogWarning("[SurveySceneView] Cannot submit yet");
             }
 
             if (_runner.IsComplete)
             {
-                FinalizeAndExit();
+                HandleCompletion();
             }
             else
             {
@@ -213,20 +307,27 @@ namespace Questionnaire.UI
             }
         }
 
-        private void FinalizeAndExit()
+        private void HandleCompletion()
         {
+            if (_closed) return;
+            _closed = true;
+
             _logger?.Close();
             _runner?.Close();
 
-            if (string.IsNullOrEmpty(_exitScene))
-            {
-                _currentStageGo?.SetActive(false);
-                gameObject.SetActive(false);
-            }
-            else
-            {
+            if (_currentStageGo != null)
+                Destroy(_currentStageGo);
+            _currentStageGo = null;
+
+            // Hide this view
+            gameObject.SetActive(false);
+
+            if (_logDebug)
+                Debug.Log($"[SurveySceneView] Survey '{_survey?.id}' completed. Logging closed.");
+
+            // Exit scene if configured
+            if (!string.IsNullOrEmpty(_exitScene))
                 SceneManager.LoadScene(_exitScene);
-            }
         }
 
         private void OnDestroy()
@@ -235,8 +336,12 @@ namespace Questionnaire.UI
             _runner?.Close();
         }
 
-        // --- Helper types ---
+        // Allow external callers to trigger survey start
+        public void StartSurvey() => LoadAndStartSurvey();
 
+        public bool IsComplete => _closed || (_runner != null && _runner.IsComplete);
+
+        // --- Helper types ---
         private sealed class FakeSliderWidget : IQuestionWidget
         {
             private readonly float _value;
@@ -248,4 +353,10 @@ namespace Questionnaire.UI
             public void Show(bool visible) { }
         }
     }
+}
+
+internal static class DictExt
+{
+    public static string TryGetOrDefault(this System.Collections.Generic.Dictionary<string, string> dict, string key, string defaultValue)
+        => dict != null && dict.TryGetValue(key, out var v) ? v : defaultValue;
 }
