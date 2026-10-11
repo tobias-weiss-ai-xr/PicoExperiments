@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using Newtonsoft.Json;
 
 namespace Questionnaire
@@ -11,14 +12,16 @@ public static class SurveySchema
         if (string.IsNullOrWhiteSpace(json))
             throw new ArgumentException("survey json cannot be empty or whitespace", nameof(json));
 
-        return JsonConvert.DeserializeObject<Survey>(json)
-            ?? throw new InvalidDataException("failed to parse survey json");
+        var result = JsonConvert.DeserializeObject<Survey>(json);
+        if (result == null)
+            throw new InvalidDataException("failed to parse survey json");
+        return result;
     }
 
-    public static IReadOnlyList<string> Validate(Survey survey, System.Collections.ICollection knownTypes = null)
+    public static IReadOnlyList<string> Validate(Survey survey, HashSet<string> knownTypes = null)
     {
         var errors = new List<string>();
-        knownTypes ??= KnownQuestionTypes.V1;
+        knownTypes = knownTypes ?? new HashSet<string>(KnownQuestionTypes.V1);
 
         if (string.IsNullOrWhiteSpace(survey.id))
             errors.Add("survey.id is empty");
